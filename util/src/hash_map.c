@@ -127,7 +127,7 @@ hash_map_insert(hash_map_t * hashmap,
 		free(new_node->value);
 		//memcpy(new_value, value, value_size);
 		new_node->value = new_value;
-		new_node->value_size = res;
+		//new_node->value_size = res;
 	}else{
 		new_node = (hash_map_entry_t *) malloc(sizeof(hash_map_entry_t));
 		if(!new_node){
@@ -145,7 +145,7 @@ hash_map_insert(hash_map_t * hashmap,
 			free(new_node);
 			return 0;
 		}
-		new_node->value_size = res;	
+		//new_node->value_size = res;	
 		/*clone key*/
 		memcpy(new_node->key, key, key_size);
 		new_node->key_size = key_size;

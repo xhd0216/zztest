@@ -1,26 +1,10 @@
-/*
-typedef struct key_s{
-	void * key;
-	int size;
-}key_t;
-
-typedef struct value_s{
-	void * value;
-	int size;
-}value_t;*/
-
-
-/* callback function:
- * copy value to (*target)
- * return the size copied
- */
 typedef int (*value_clone_cb_f)(void ** target, const void * source);
 
 typedef struct hash_map_entry_s{
 	void * key;
 	void * value;
 	int key_size;
-	int value_size;	
+	//int value_size;	
 	struct hash_map_entry_s * next;
 	struct hash_map_entry_s * prev;
 }hash_map_entry_t;

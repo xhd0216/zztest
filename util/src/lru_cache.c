@@ -9,6 +9,36 @@ int hash_value_clone_cb(void ** target, const void * pointer){
 	return sizeof(lru_entry_t*);
 }
 
+hash_map_entry_t * 
+lru_insert_to_hash_map(hash_map_t * hashmap,
+					const void * key,
+					int key_size,
+					lru_entry_t * point){
+	if(!hashmap ||key_size < 1|| !key || !point){
+		return 0;
+	}
+	hash_map_entry_t * res = (hash_map_entry_t *) malloc(sizeof(hash_map_entry_t));
+	if(!res){
+		printf("%s: fail to allocate memory\n", __FUNCTION__);
+		return 0;
+	}
+	/*key copy*/
+	memcpy(res->key, key, key_size);
+	res->key_size = key_size;
+	res->value = (void *)point;
+	
+	int buc = hashmap->hash_f(key, key_size);
+	hash_map_entry_t * p = hashmap->table[buc];
+	while(p->next){
+		p = p->next;
+	}
+	res->next = p->next;
+	if(p->next) p->next->prev = res;
+	p->next = res;
+	res->prev = p;
+	return res;
+}
+
 int lru_cache_init(lru_cache_t ** lru,
 				hash_map_function hashfunction){
 	if(!lru) return 0;

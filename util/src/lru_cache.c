@@ -13,7 +13,7 @@ hash_map_entry_t *
 lru_insert_to_hash_map(hash_map_t * hashmap,
 					const void * key,
 					int key_size,
-					lru_entry_t * point){
+					const lru_entry_t * point){
 	if(!hashmap ||key_size < 1|| !key || !point){
 		return 0;
 	}
@@ -96,15 +96,15 @@ int lru_cache_insert(lru_cache_t * lru,
 		p->next = 0;
 		p->prev = 0;
 		p->value = 0;	
-		int resp = hash_map_insert(lru->hashmap,
+		hash_map_entry_t * resp = lru_insert_to_hash_map(lru->hashmap,
 									key, key_size,
-									(const void *) p, 
-									hash_value_clone_cb);
+									(const lru_entry_t *) p);
 		if(resp == 0){
 			printf("%s: error inserting to hash map\n", __FUNCTION__);
 			free(p);
 			return 0;
-		}		
+		}
+		p->pointer_back = resp;		
 	}
 	/* copy value */
 	if(p->value){

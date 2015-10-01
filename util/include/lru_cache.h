@@ -27,3 +27,4 @@ int lru_cache_insert(lru_cache_t *,
 					 const void * value,
 //					 int value_size,
 					 lru_value_copy_cb_f);
+int lru_delete_auto(lru_cache_t *);

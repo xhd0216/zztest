@@ -9,6 +9,36 @@ int hash_value_clone_cb(void ** target, const void * pointer){
 	return sizeof(lru_entry_t*);
 }
 
+
+/* also delete the entry in hashmap*/
+void lru_free_entry(lru_entry_t * p){
+	free(p->value);/*TODO: imporve later*/
+	free(p);
+}
+
+int lru_delete_auto(lru_cache_t * lru){
+	if(!lru || !lru->tail || !lru->head || lru->tail->prev == lru->head){
+		return 0;
+	}
+	lru_entry_t * p = lru->tail->prev;
+	p->prev->next = lru->tail;
+	lru->tail->prev = p->prev;
+	hash_map_entry_t * pb = p->pointer_back;
+	//hash_map_free_entry(pb);
+	if(pb->prev){
+		pb->prev->next = pb->next;
+		if(pb->next){
+			pb->next->prev = pb->prev;
+		}
+	}
+	//TODO: improve this
+	free(pb->key);
+	free(pb);
+	lru_free_entry(p);
+	return 1;
+}
+
+
 hash_map_entry_t * 
 lru_insert_to_hash_map(hash_map_t * hashmap,
 					const void * key,

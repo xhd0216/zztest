@@ -2,36 +2,40 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "hash_map.h"
-void hash_map_free_entry(hash_map_entry_t * p){
+
+void hash_map_free_entry(hash_map_entry_t * p, key_free_cb_f * key_f){
 	if(p){
 		if(p->key){
-			/* should have call back function to free key */
-			free(p->key);
+			*key_f(p->key);
 		}
 		if(p->value){
-			/* should have call back function to free value */
-			free(p->value);
+			p->value_free(p->value);
 		}
 		free(p);
 	}
 }
+
 int hash_map_init(hash_map_t ** hm,
-				hash_map_function f){
+				hash_map_function * f,
+				key_cmp_cb_f * key_c,
+				key_free_cb_f * key_f){
 	if(!hm) return 0;
 	*hm = malloc(sizeof(hash_map_t));
 	if(!*hm) return 0;
 	int i = 0;
-	//for(int i = 0; i < HASH_MAP_MAX_BUCKETS; i++){
 	while(i < HASH_MAP_MAX_BUCKETS){
 		(*hm)->table[i] = malloc(sizeof(hash_map_entry_t));
 		if((*hm)->table[i] == 0){
 			return 0;
 		}
+		memset((*hm)->table[i], 0, sizeof(hash_map_entry_t));
 		(*hm)->table[i]->prev = 0;
 		(*hm)->table[i]->next = 0;
 		i++;
 	}
 	(*hm)->hash_f = f;
+	(*hm)->key_cmp = key_c;
+	(*hm)->key_free = key_f;
 	return 1;
 }
 int hash_map_bucket_number_valid(int b){
@@ -45,19 +49,18 @@ int hash_map_key_compare(const void * key_1, int s1,
 
 hash_map_entry_t * 
 hash_map_lookup_entry(hash_map_t * hm,
-					const void * key,
-					int size){
-	if(!hm || !key || size < 1){
+					const void * key){
+	if(!hm || !key){
 		return 0;
 	}
-	int buc = hm->hash_f(key, size);
+	int buc = hm->hash_f(key);
 	if(hash_map_bucket_number_valid(buc)){
 		printf("%s: invalid bucket number %d\n", __FUNCTION__, buc);
 		return 0;
 	}
 	hash_map_entry_t * p = hm->table[buc]->next;
 	while(p){
-		if(hash_map_key_compare(key, size, p->key, p->key_size)){
+		if(hm->key_cmp(key, p->key)){
 			break;
 		}
 		p=p->next;
@@ -66,35 +69,32 @@ hash_map_lookup_entry(hash_map_t * hm,
 }
 int hash_map_lookup(hash_map_t * hm,
 					const void * key,
-					int key_size,
-					void ** value,
-					value_clone_cb_f clone){
-	if(!hm || !key || key_size < 1 || !value){
+					void * value){
+	if(!hm || !key || !value){
 		return 0;
 	}
-	hash_map_entry_t * p = hash_map_lookup_entry(hm, key, key_size);
+	hash_map_entry_t * p = hash_map_lookup_entry(hm, key);
 	if(!p){
 		printf("%s: cannot find entry\n", __FUNCTION__);
 		return 0;
 	}
-	int res = clone(value, p->value);
+	int res = p->value_clone(value, p->value);
 	if(!res){
 		printf("%s: fail to clone value\n", __FUNCTION__);
-		*value = 0;
 	}
 	return res;
 }
 int hash_map_delete_entry(hash_map_t * hm,
-						const void * key,
-						int size){
-	hash_map_entry_t * p = hash_map_lookup_entry(hm, key, size);
+						const void * key){
+	hash_map_entry_t * p = hash_map_lookup_entry(hm, key);
 	if(!p){
 		printf("%s: cannot find entry\n", __FUNCTION__);
 		return -1;
 	}
 	p->prev->next = p->next;
 	if(p->next) p->next->prev = p->prev;
-	hash_map_free_entry(p);
+	/* free hash_map_entry_t*/
+	
 	return 1;
 }
 

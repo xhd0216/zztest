@@ -1,9 +1,10 @@
-typedef int (*value_clone_cb_f)(void ** target, const void * source);
+typedef int (*value_clone_cb_f)(void **, const void * source);
 typedef void (*value_free_cb_f)(void *);
 typedef int (*key_cmp_cb_f)(const void *, const void *);
 typedef int (*key_clone_cb_f)(void **, const void *);
 typedef void (*key_free_cb_f)(void *);
-
+typedef char * (*key_to_string_cb_f)(const void *);
+typedef char * (*value_to_string_cb_f)(const void *);
 typedef struct hash_map_entry_s{
 	void * key;
 	void * value;

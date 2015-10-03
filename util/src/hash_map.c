@@ -3,6 +3,29 @@
 #include <stdlib.h>
 #include "hash_map.h"
 
+void hash_map_dump(hash_map_t * hm,
+				key_to_string_cb_f * key_print,
+				value_to_string_cb_f * value_print){
+	int i = 0;
+	while(i < HASH_MAP_MAX_BUCKETS){
+		printf("[%d]===========\n", i);
+		hash_map_entry_t * p = hm->table[i];
+		if(!p || !p->next){
+			++i;
+			continue;
+		}
+		p = p->next;
+		while(p){
+			printf("key: %s\n", (*key_print)(hm->table[i]->key));
+			printf("value: %s\n", (*value_print)(hm->table[i]->value));
+			p = p->next;
+		}
+		++i;
+	}
+}
+
+
+
 void hash_map_free_entry(hash_map_entry_t * p, key_free_cb_f * key_f){
 	if(p){
 		if(p->key){

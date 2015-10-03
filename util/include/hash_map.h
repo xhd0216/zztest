@@ -1,7 +1,7 @@
 typedef int (*value_clone_cb_f)(void ** target, const void * source);
 typedef void (*value_free_cb_f)(void *);
 typedef int (*key_cmp_cb_f)(const void *, const void *);
-typedef int (*key_clone_cb_f)(void *, const void *);
+typedef int (*key_clone_cb_f)(void **, const void *);
 typedef void (*key_free_cb_f)(void *);
 
 typedef struct hash_map_entry_s{
@@ -37,10 +37,12 @@ int hash_map_lookup(hash_map_t *,
 					void ** value);
 					//value_clone_cb_f);
 int hash_map_init(hash_map_t **,
-				hash_map_function);
+				hash_map_function *,
+				key_cmp_cb_f *,
+				key_free_cb_f *);
 /* copy value using call back function */
 int hash_map_insert(hash_map_t *,
 					const void * key,
-					//int key_size,
-					const void * value);
-					//value_clone_cb_f);
+					const void * value,
+					value_clone_cb_f,
+					value_free_cb_f);

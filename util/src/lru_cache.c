@@ -6,15 +6,9 @@
 int hash_value_clone_cb(void ** target, const void * pointer){
 	if(!target) return 0;
 	*target = (void *)pointer;
-	return sizeof(lru_entry_t*);
+	return 1;
 }
 
-
-/* also delete the entry in hashmap*/
-void lru_free_entry(lru_entry_t * p){
-	free(p->value);/*TODO: imporve later*/
-	free(p);
-}
 
 int lru_delete_auto(lru_cache_t * lru){
 	if(!lru || !lru->tail || !lru->head || lru->tail->prev == lru->head){
@@ -24,27 +18,41 @@ int lru_delete_auto(lru_cache_t * lru){
 	p->prev->next = lru->tail;
 	lru->tail->prev = p->prev;
 	hash_map_entry_t * pb = p->pointer_back;
-	//hash_map_free_entry(pb);
-	if(pb->prev){
-		pb->prev->next = pb->next;
-		if(pb->next){
-			pb->next->prev = pb->prev;
+	/* should assert pb->value == p*/
+	if(pb){
+		//hash_map_free_entry(pb);
+		if(pb->prev){
+			pb->prev->next = pb->next;
+			if(pb->next){
+				pb->next->prev = pb->prev;
+			}
 		}
+		/* free pb->key*/
+		(*(lru->hashmap->key_free))(pb->key);
+		/* do NOT free pb->value, because pb->value == p*/
+		free(pb);
 	}
-	//TODO: improve this
-	free(pb->key);
-	free(pb);
-	lru_free_entry(p);
+	(*(p->value_free))(p->value);
+	free(p);
 	return 1;
 }
 
+void lru_free_nothing(void * foo){
+	/* this function should do nothing! */
+}
 
 hash_map_entry_t * 
 lru_insert_to_hash_map(hash_map_t * hashmap,
 					const void * key,
-					int key_size,
 					const lru_entry_t * point){
-	if(!hashmap ||key_size < 1|| !key || !point){
+	if(!hashmap || !key || !point){
+		return 0;
+	}
+	int buc = (*(hashmap->hash_f))(key);
+	hash_map_entry_t * p = hashmap->table[buc];
+	if(!p){
+		/*error in hashmap->table[buc]*/
+		printf("%s: hashmap->table[%d] is NULL\n", __FUNCTION__, buc);
 		return 0;
 	}
 	hash_map_entry_t * res = (hash_map_entry_t *) malloc(sizeof(hash_map_entry_t));
@@ -52,14 +60,14 @@ lru_insert_to_hash_map(hash_map_t * hashmap,
 		printf("%s: fail to allocate memory\n", __FUNCTION__);
 		return 0;
 	}
-	/*key copy*/
-	memcpy(res->key, key, key_size);
-	res->key_size = key_size;
+	/* key clone */
+	(*(hashmap->key_clone))(&(res->key), key);
+	/* important here!!!*/
 	res->value = (void *)point;
-	
-	int buc = hashmap->hash_f(key, key_size);
-	hash_map_entry_t * p = hashmap->table[buc];
-	while(p->next){
+	res->value_clone = hash_value_clone_cb;
+	res->value_free = &lru_free_nothing;
+ 
+	while(p){
 		p = p->next;
 	}
 	res->next = p->next;
@@ -68,7 +76,7 @@ lru_insert_to_hash_map(hash_map_t * hashmap,
 	res->prev = p;
 	return res;
 }
-
+/******************modify up to here*/
 int lru_cache_init(lru_cache_t ** lru,
 				hash_map_function hashfunction){
 	if(!lru) return 0;

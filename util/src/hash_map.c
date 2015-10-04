@@ -141,8 +141,8 @@ hash_map_insert(hash_map_t * hashmap,
 	int res = 0;
 	int is_new = 0;
 	hash_map_entry_t * new_node;
-	res = (*clone)(&(new_node->value), value);
-	if(!(new_node->value)){
+	res = (*clone)(&(new_value), value);
+	if(!(new_value) || !res){
 		printf("%s: error cloning memory for value\n", __FUNCTION__);
 		return 0;
 	}

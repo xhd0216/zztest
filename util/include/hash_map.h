@@ -8,8 +8,8 @@ typedef char * (*value_to_string_cb_f)(const void *);
 typedef struct hash_map_entry_s{
 	void * key;
 	void * value;
-	value_clone_cb_f * value_clone;
-	value_free_cb_f * value_free;
+	value_clone_cb_f  value_clone;
+	value_free_cb_f  value_free;
 	struct hash_map_entry_s * next;
 	struct hash_map_entry_s * prev;
 }hash_map_entry_t;
@@ -24,10 +24,10 @@ typedef struct hash_map_s{
 	 * it is hard to implement a cmp function of two keys in 
 	 * different format
 	 */
-	hash_map_function * hash_f;
-	key_cmp_cb_f * key_cmp;
-	key_clone_cb_f * key_clone;
-	key_free_cb_f * key_free;
+	hash_map_function  hash_f;
+	key_cmp_cb_f  key_cmp;
+	key_clone_cb_f  key_clone;
+	key_free_cb_f  key_free;
 	hash_map_entry_t * table[HASH_MAP_MAX_BUCKETS];
 }hash_map_t;
 
@@ -40,16 +40,16 @@ int hash_map_lookup(hash_map_t *,
 					const void * key,
 					void ** value);
 int hash_map_init(hash_map_t **,
-				hash_map_function *,
-				key_cmp_cb_f *,
-				key_free_cb_f *,
-				key_clone_cb_f *);
+				hash_map_function,
+				key_cmp_cb_f,
+				key_free_cb_f,
+				key_clone_cb_f);
 /* copy value using call back function */
 int hash_map_insert(hash_map_t *,
 					const void * key,
 					const void * value,
-					value_clone_cb_f *,
-					value_free_cb_f *);
+					value_clone_cb_f,
+					value_free_cb_f);
 void hash_map_dump(hash_map_t *,
-				key_to_string_cb_f *,
-				value_to_string_cb_f *);
+				key_to_string_cb_f,
+				value_to_string_cb_f);

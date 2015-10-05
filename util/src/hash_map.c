@@ -4,8 +4,8 @@
 #include "hash_map.h"
 
 void hash_map_dump(hash_map_t * hm,
-				key_to_string_cb_f * key_print,
-				value_to_string_cb_f * value_print){
+				key_to_string_cb_f  key_print,
+				value_to_string_cb_f  value_print){
 	int i = 0;
 	while(i < HASH_MAP_MAX_BUCKETS){
 		printf("[%d]===========\n", i);
@@ -16,8 +16,8 @@ void hash_map_dump(hash_map_t * hm,
 		}
 		p = p->next;
 		while(p){
-			printf("key: %s\n", (*key_print)(hm->table[i]->key));
-			printf("value: %s\n", (*value_print)(hm->table[i]->value));
+			printf("key: %s\n", (key_print)(hm->table[i]->key));
+			printf("value: %s\n", (value_print)(hm->table[i]->value));
 			p = p->next;
 		}
 		++i;
@@ -26,23 +26,23 @@ void hash_map_dump(hash_map_t * hm,
 
 
 
-void hash_map_free_entry(hash_map_entry_t * p, key_free_cb_f * key_f){
+void hash_map_free_entry(hash_map_entry_t * p, key_free_cb_f  key_f){
 	if(p){
 		if(p->key){
-			(*key_f)(p->key);
+			(key_f)(p->key);
 		}
 		if(p->value){
-			(*(p->value_free))(p->value);
+			p->value_free(p->value);
 		}
 		free(p);
 	}
 }
 
 int hash_map_init(hash_map_t ** hm,
-				hash_map_function * f,
-				key_cmp_cb_f * key_c,
-				key_free_cb_f * key_f,
-				key_clone_cb_f * key_cl){
+				hash_map_function  f,
+				key_cmp_cb_f  key_c,
+				key_free_cb_f  key_f,
+				key_clone_cb_f  key_cl){
 	if(!hm) return 0;
 	*hm = malloc(sizeof(hash_map_t));
 	if(!*hm) return 0;
@@ -132,8 +132,8 @@ int
 hash_map_insert(hash_map_t * hashmap,
 				const void * key,
 				const void * value,
-				value_clone_cb_f * clone,
-				value_free_cb_f * value_f){
+				value_clone_cb_f clone,
+				value_free_cb_f value_f){
 	if(!hashmap || !key || !value || !clone || !(hashmap->key_cmp) || !value_f){
 		return 0;
 	}

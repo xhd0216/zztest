@@ -20,7 +20,6 @@ int lru_delete_auto(lru_cache_t * lru){
 	hash_map_entry_t * pb = p->pointer_back;
 	/* should assert pb->value == p*/
 	if(pb){
-		//hash_map_free_entry(pb);
 		if(pb->prev){
 			pb->prev->next = pb->next;
 			if(pb->next){
@@ -32,13 +31,14 @@ int lru_delete_auto(lru_cache_t * lru){
 		/* do NOT free pb->value, because pb->value == p*/
 		free(pb);
 	}
-	(*(p->value_free))(p->value);
+	(p->value_free)(p->value);
 	free(p);
 	return 1;
 }
 
 void lru_free_nothing(void * foo){
 	/* this function should do nothing! */
+	printf("%s: we do nothing here -- we don't free the lru entry\n", __FUNCTION__);
 }
 
 hash_map_entry_t * 
@@ -64,8 +64,8 @@ lru_insert_to_hash_map(hash_map_t * hashmap,
 	(*(hashmap->key_clone))(&(res->key), key);
 	/* important here!!!*/
 	res->value = (void *)point;
-	res->value_clone = hash_value_clone_cb;
-	res->value_free = &lru_free_nothing;
+	(res->value_clone) = &hash_value_clone_cb;
+	(res->value_free) = &lru_free_nothing;
  
 	while(p){
 		p = p->next;
@@ -76,9 +76,11 @@ lru_insert_to_hash_map(hash_map_t * hashmap,
 	res->prev = p;
 	return res;
 }
-/******************modify up to here*/
 int lru_cache_init(lru_cache_t ** lru,
-				hash_map_function hashfunction){
+				hash_map_function hashfunction,
+				key_cmp_cb_f key_cmp,
+				key_free_cb_f key_free,
+				key_clone_cb_f key_clone){
 	if(!lru) return 0;
 	*lru = (lru_cache_t *) malloc(sizeof(lru_cache_t));
 	if(!*lru){
@@ -94,7 +96,7 @@ int lru_cache_init(lru_cache_t ** lru,
 		*lru = 0;
 		return 0;
 	}
-	int res = hash_map_init(&((*lru)->hashmap), hashfunction);
+	int res = hash_map_init(&((*lru)->hashmap), hashfunction, key_cmp, key_free, key_clone);
 	if(!res || !((*lru)->hashmap)){
 		printf("init: fail to allocate memory for hashmap\n");
 		free((*lru)->head);
@@ -113,17 +115,16 @@ int lru_cache_init(lru_cache_t ** lru,
 
 int lru_cache_insert(lru_cache_t * lru,
 					const void * key,
-					int key_size,
 					const void * value,
-					//int value_size,
-					lru_value_copy_cb_f value_clone){
+					value_clone_cb_f value_clone,
+					value_free_cb_f value_free){
 
-	if(!lru || !key || key_size == 0 || !value) {
+	if(!lru || !key  || !value) {
 		return 0;
 	}
 	int s = 0;
 	lru_entry_t * p;
-	s = hash_map_lookup(lru->hashmap, key, key_size,  (void **)(&p), hash_value_clone_cb);
+	s = hash_map_lookup(lru->hashmap, key,  (void **)(&p));
 	if(!p || !s){
 		printf("%s: key doesn't exist, create new one\n", __FUNCTION__);
 		p = (lru_entry_t *) malloc(sizeof(lru_entry_t));
@@ -135,7 +136,7 @@ int lru_cache_insert(lru_cache_t * lru,
 		p->prev = 0;
 		p->value = 0;	
 		hash_map_entry_t * resp = lru_insert_to_hash_map(lru->hashmap,
-									key, key_size,
+									key,
 									(const lru_entry_t *) p);
 		if(resp == 0){
 			printf("%s: error inserting to hash map\n", __FUNCTION__);
@@ -144,25 +145,21 @@ int lru_cache_insert(lru_cache_t * lru,
 		}
 		p->pointer_back = resp;		
 	}
-	/* copy value */
-	if(p->value){
-		free(p->value);/*delete original content -- should have call back*/
-	}
-	/*p->value = (void *) malloc(value_size);
-	if(p->value ==0){
-		printf("%s: fail to allocate memory\n", __FUNCTION__);
-		free(p);
-		return 0;
-	}*/
-	p->value = 0;
-	int res = value_clone((void **)(&(p->value)), value);
-	if(!res || !(p->value)){
+	void * new_value = 0;
+	int res = value_clone((void **)(&(new_value)), value);
+	if(!res || !(new_value)){
 		/* fails to clone value to p */
 		printf("%s: fail to clone value\n", __FUNCTION__);
 		free(p);
 		return 0;
 	}
-	//p->value_size = value_size;
+	/* copy value */
+	if(p->value){
+		p->value_free(p->value);
+	}
+	p->value = new_value;
+	p->value_free = value_free;
+	p->value_clone = value_clone;
 	/* move pointer to the front of list */
 	if(p->prev) p->prev->next = p->next;
 	if(p->next) p->next->prev = p->prev;
@@ -175,15 +172,13 @@ int lru_cache_insert(lru_cache_t * lru,
 
 int lru_cache_get(lru_cache_t * lru,
 				  const void * key,
-				  int size,
-				  void ** value,
-				  lru_value_copy_cb_f value_clone){
-	if(!lru || !key || size<1 || !value) {
+				  void ** value){
+	if(!lru || !key ||  !value) {
 		return 0;
 	}
 	int s = 0;
 	lru_entry_t * p = 0;
-	s=hash_map_lookup(lru->hashmap, key, size,  (void **)(&p), hash_value_clone_cb);
+	s=hash_map_lookup(lru->hashmap, key, (void **)(&p));
 	if(!p || !s){
 		printf("%s: key doesn't exist\n", __FUNCTION__);
 		return 0;
@@ -196,7 +191,7 @@ int lru_cache_get(lru_cache_t * lru,
 	lru->head->next = p;
 	p->prev = lru->head;
 	/* copy value then exit */
-	int res = value_clone(value, (const void *)(p->value));
+	int res = p->value_clone(value, (const void *)(p->value));
 	if(res<1 || !*value){
 		printf("%s: cannot allocate memory\n", __FUNCTION__);
 		return 0;

@@ -15,13 +15,7 @@ clean: clean_subs clean_so clean_local
 clean_subs : $(sources)
 	$(MAKE) --directory=$< clean
 clean_local:
-	if [ -a test.o]; \
-	then \
-		rm test.o; \
-	fi;
-clean_so: $(libraries)
-	if [ -a $(library)]; \
-	then \
-		rm $(libraries); \
-	fi;
-	
+	-rm test.o
+
+clean_so:
+	-rm $(libraries)

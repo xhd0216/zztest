@@ -8,12 +8,6 @@ all: $(OBJ)
 %.o : %.c
 	gcc -c -Wall -g -fPIC -I$(LIB) $< -o $@
 
-clean: $(OBJ)
-	for f in $(OBJ); do\
-		if [ -e f ] ; then\
-			echo "processing $f"; \
-			rm f; \
-		fi; \
-	done;
-
+clean: 
+	-rm src/*.o
 

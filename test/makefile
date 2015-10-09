@@ -6,7 +6,7 @@ libraries = ../Library/libutil.so
 sources = $(lib_util)
 
 all: src/test.c $(sources) $(libraries)
-	gcc -Wall -I$(sources)/include -o test.o src/test.c $(libraries)
+	gcc -Wall -I$(sources)/include -Iinclude/ -o test.o src/test.c $(libraries)
 $(libraries) : $(sources)
 	$(MAKE) --directory=$<
 

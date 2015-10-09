@@ -14,7 +14,7 @@ typedef struct hash_map_entry_s{
 	struct hash_map_entry_s * prev;
 }hash_map_entry_t;
 
-#define HASH_MAP_MAX_BUCKETS 100
+#define HASH_MAP_MAX_BUCKETS 7
 
 typedef int (*hash_map_function)(const void * key);
 typedef struct hash_map_s{

@@ -16,8 +16,8 @@ void hash_map_dump(hash_map_t * hm,
 		}
 		p = p->next;
 		while(p){
-			printf("key: %s\n", (key_print)(hm->table[i]->key));
-			printf("value: %s\n", (value_print)(hm->table[i]->value));
+			printf("\tkey: %s\n", (*key_print)(p->key));
+			printf("\tvalue: %s\n", (*value_print)(p->value));
 			p = p->next;
 		}
 		++i;

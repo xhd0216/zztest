@@ -31,13 +31,29 @@ void hash_map_free_entry(hash_map_entry_t * p, key_free_cb_f  key_f){
 		if(p->key){
 			(key_f)(p->key);
 		}
-		if(p->value){
+		if(p->value && p->value_free){
 			p->value_free(p->value);
 		}
 		free(p);
 	}
 }
+void hash_map_fini(hash_map_t * hm){
+	if(!hm) return;
+	int i = 0;
+	hash_map_entry_t * p;
+	hash_map_entry_t * next;
+	while(i < HASH_MAP_MAX_BUCKETS){
+		p = hm->table[i];
+		while(p){
+			next = p->next;
+			hash_map_free_entry(p, hm->key_free);
+			p = next;
+		}
+		i++;
+	}
+	free(hm);
 
+}
 int hash_map_init(hash_map_t ** hm,
 				hash_map_function  f,
 				key_cmp_cb_f  key_c,

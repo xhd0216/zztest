@@ -53,3 +53,4 @@ int hash_map_insert(hash_map_t *,
 void hash_map_dump(hash_map_t *,
 				key_to_string_cb_f,
 				value_to_string_cb_f);
+void hash_map_fini(hash_map_t *);

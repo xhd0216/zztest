@@ -2,7 +2,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+void lru_cache_fini(lru_cache_t *lru){
+	if(!lru){
+		return;
+	}
+	lru_entry_t * p = lru->head;
+	lru_entry_t * next;
+	while(p){
+		next = p->next;
+		p->value_free(p->value);
+		free(p);
+		p = next;
+	}
+	hash_map_fini(lru->hashmap);
+	
 
+}
 void lru_dump(lru_cache_t * lru, value_to_string_cb_f vts, key_to_string_cb_f kts){
 	if(!lru){
 		printf("empty string\n");
@@ -12,7 +27,7 @@ void lru_dump(lru_cache_t * lru, value_to_string_cb_f vts, key_to_string_cb_f kt
 	hash_map_entry_t * pb;
 	while(p && p!=lru->tail){
 		pb = p->pointer_back;
-		printf("============\n");
+		printf("===========\n");
 		if(!pb){
 			printf("Error: cannot find hash map entry\n");
 		}
@@ -30,6 +45,7 @@ void lru_dump(lru_cache_t * lru, value_to_string_cb_f vts, key_to_string_cb_f kt
 		}
 		p = p->next;
 	}
+	printf("============\n");
 }
 int hash_value_clone_cb(void ** target, const void * pointer){
 	if(!target) return 0;
@@ -68,7 +84,7 @@ void lru_free_nothing(void * foo){
 	/* this function should do nothing! */
 	printf("%s: we do nothing here -- we don't free the lru entry\n", __FUNCTION__);
 }
-
+/*make sure key does not exist in hashmap!!!*/
 hash_map_entry_t * 
 lru_insert_to_hash_map(hash_map_t * hashmap,
 					const void * key,
@@ -90,14 +106,12 @@ lru_insert_to_hash_map(hash_map_t * hashmap,
 	}
 	/* key clone */
 	(*(hashmap->key_clone))(&(res->key), key);
+	printf("%s: key cloned\n", __FUNCTION__);
 	/* important here!!!*/
 	res->value = (void *)point;
 	(res->value_clone) = &hash_value_clone_cb;
 	(res->value_free) = &lru_free_nothing;
  
-	while(p){
-		p = p->next;
-	}
 	res->next = p->next;
 	if(p->next) p->next->prev = res;
 	p->next = res;
@@ -181,8 +195,10 @@ int lru_cache_insert(lru_cache_t * lru,
 		free(p);
 		return 0;
 	}
+	printf("%s: value cloned\n", __FUNCTION__);
 	/* copy value */
 	if(p->value){
+		printf("%s: discard old value\n", __FUNCTION__);
 		p->value_free(p->value);
 	}
 	p->value = new_value;

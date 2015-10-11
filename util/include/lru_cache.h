@@ -29,3 +29,4 @@ int lru_cache_insert(lru_cache_t *,
 					 value_clone_cb_f,
 					 value_free_cb_f);
 int lru_delete_auto(lru_cache_t *);
+void lru_dump(lru_cache_t *, value_to_string_cb_f, key_to_string_cb_f);

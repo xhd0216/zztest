@@ -3,6 +3,34 @@
 #include <stdlib.h>
 #include <string.h>
 
+void lru_dump(lru_cache_t * lru, value_to_string_cb_f vts, key_to_string_cb_f kts){
+	if(!lru){
+		printf("empty string\n");
+		return;
+	}
+	lru_entry_t * p = lru->head->next;
+	hash_map_entry_t * pb;
+	while(p && p!=lru->tail){
+		pb = p->pointer_back;
+		printf("============\n");
+		if(!pb){
+			printf("Error: cannot find hash map entry\n");
+		}
+		else if(!pb->key){
+			printf("Error: cannot find key\n");
+		}
+		else{
+			printf("key: %s\n", kts((const void *)pb->key));
+		}
+		if(!p->value){
+			printf("Error: Cannot find value\n");
+		}
+		else{
+			printf("value: %s\n", vts((const void *)p->value));
+		}
+		p = p->next;
+	}
+}
 int hash_value_clone_cb(void ** target, const void * pointer){
 	if(!target) return 0;
 	*target = (void *)pointer;

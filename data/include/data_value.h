@@ -45,7 +45,7 @@ typedef struct kv_pair_s{
 typedef struct data_value_s{
 	double parameters[rp_MAX_PARAM];
 	int has_parameters[rp_MAX_PARAM];
-	key_pair_t * head; /*head of non-regular parameters
+	kv_pair_t * head; /*head of non-regular parameters
 						*linked list 
 						*/
 }data_value_t;

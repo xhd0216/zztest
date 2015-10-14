@@ -1,5 +1,7 @@
 #include "data_value.h"
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 int value_clone_cbf_for_data(void ** target, const void * src)
 {
 	if(!target || !src){

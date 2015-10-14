@@ -32,7 +32,7 @@ typedef enum{
 	rp_cci,
 	rp_MAX_PARAM
 }regular_parameter;
-#define PARAMETER(name) rp_##name##
+//#define PARAMETER(name) rp_##name##
 
 
 #define PARAMETER_NAME_MAX_LEN 15
@@ -42,6 +42,7 @@ typedef struct kv_pair_s{
 	struct kv_pair_s * next;
 	struct kv_pair_s * prev;
 }kv_pair_t;
+
 typedef struct data_value_s{
 	double parameters[rp_MAX_PARAM];
 	int has_parameters[rp_MAX_PARAM];
@@ -50,10 +51,7 @@ typedef struct data_value_s{
 						*/
 }data_value_t;
 
-int value_clone_cbf_for_data(void **, const *);
+int value_clone_cbf_for_data(void **, const void *);
 void value_free_cbf_for_data(void *);
 char * value_to_string_for_data(const void *);
-int lru_cache_insert_warp(lru_cache_t *,
-						const void * key,
-						const void * value);
 

@@ -18,4 +18,8 @@ typedef struct data_key_s{
 	data_update_period update_period;
 }data_key_t;
 
-
+int key_cmp_cbf_for_data(const void *, const void *);
+int key_clone_cbf_for_data(void **, const void *);
+void key_free_cbf_for_data(void *);
+int hash_function_for_data(const void *);
+char * key_to_string_for_data(const void *);

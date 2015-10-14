@@ -1,10 +1,18 @@
 #include "lru_cache.h"
 #include "data_key.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+char * key_to_string_for_data(const void * key){
+	char * str = "this_is_a_key.";
+	return str;
+}
 
 int hash_function_for_data(const void * key){
 	const data_key_t * k = (const data_key_t *) key;
 	int res = 0;
-	char * c = k->key_name;
+	const char * c = k->key_name;
 	while(c && *c){
 		res = res << 1;
 		res ^= *c;
@@ -13,18 +21,18 @@ int hash_function_for_data(const void * key){
 	c = k->key_time;
 	while(c && *c){
 		res = res << 1;
-		res ^= (*c << 1 + *c);
+		res ^= (*c << 1) + *c;
 		c++;
 	}
 	res -= k->update_period;
 	return res % HASH_MAP_MAX_BUCKETS;
 }
-int key_cmp_function_for_data(const void * key1,
+int key_cmp_cbf_for_data(const void * key1,
 							  const void * key2){
 	const data_key_t * k1 = (const data_key_t *) key1;
 	const data_key_t * k2 = (const data_key_t *) key2;
-	char * c1 = k1->key_name;
-	char * c2 = k2->key_name;
+	const char * c1 = k1->key_name;
+	const char * c2 = k2->key_name;
 	if(k1->update_period != k2->update_period){
 		return 0;
 	}
@@ -52,7 +60,7 @@ int key_cmp_function_for_data(const void * key1,
 	}
 	return 1;
 }
-int key_clone_function_for_data(void ** target, const void * source){
+int key_clone_cbf_for_data(void ** target, const void * source){
 	if(!target || !source){
 		printf("%s: input error\n", __FUNCTION__);
 		return 0;
@@ -77,15 +85,15 @@ int key_clone_function_for_data(void ** target, const void * source){
 	*target = (void *)p;
 	return 1;
 }
-void key_free_function_for_data(void * key){
+void key_free_cbf_for_data(void * key){
 	free((data_key_t *)key);
 }
-int hash_map_init_wrap(hash_map_t ** hm){
+/*int hash_map_init_wrap(hash_map_t ** hm){
 	return hash_map_init(hm, 
 						 &hash_function_for_data, 
 						 &key_cmp_function_for_data,
 						 &key_free_function_for_data,
 						 &key_clone_function_for_data);
-}
+}*/
 
 

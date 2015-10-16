@@ -23,4 +23,4 @@ clean_local:
 	-rm src/*.o
 
 clean_so:
-	-rm $(libraries)
+	-rm ../Library/libdata.so

@@ -57,7 +57,7 @@ void value_free_cbf_for_data(void * value){
 }
 
 char * value_to_string_for_data(const void * value){
-	const data_value_t * p = (const data_value_t *)value;
+	//const data_value_t * p = (const data_value_t *)value;
 	char * str = "parameters are useful!";
 	return str;
 }

@@ -2,10 +2,10 @@
 #include "data_value.h"
 #include "lru_cache.h"
 int lru_cache_init_wrap(lru_cache_t ** lru){
-	return lru_cache_init_wrap(lru, 
-							   &hash_function_for_data,
-							   &key_cmp_cbf_for_data,
-							   &key_clone_cbf_for_data);
+	return lru_cache_init(lru, 
+						   &hash_function_for_data,
+						   &key_cmp_cbf_for_data,
+						   &key_clone_cbf_for_data);
 }
 
 int lru_cache_get_wrap(lru_cache_t * lru, const data_key_t * key,

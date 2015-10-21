@@ -34,7 +34,7 @@ typedef enum{
 }regular_parameter;
 //#define PARAMETER(name) rp_##name##
 
-
+//#define rp_MAX_PARAM 256
 #define PARAMETER_NAME_MAX_LEN 15
 typedef struct kv_pair_s{
 	char k[PARAMETER_NAME_MAX_LEN];
@@ -46,7 +46,8 @@ typedef struct kv_pair_s{
 typedef struct data_value_s{
 	double parameters[rp_MAX_PARAM];
 	int has_parameters[rp_MAX_PARAM];
-	kv_pair_t * head; /*head of non-regular parameters
+	kv_pair_t * head; 
+						/*head of non-regular parameters
 						*linked list 
 						*/
 }data_value_t;

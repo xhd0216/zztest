@@ -45,6 +45,7 @@ int value_clone_cbf_for_data(void ** target, const void * src)
 }
 
 void value_free_cbf_for_data(void * value){
+	if(!value) return;
 	data_value_t * p = (data_value_t *)value;
 	kv_pair_t * h = p->head;
 	kv_pair_t * next;

@@ -102,11 +102,11 @@ hash_map_lookup_entry(hash_map_t * hm,
 	p = p->next;
 	while(p){
 		if((*(hm->key_cmp))(key, p->key)){
-			break;
+			return p;
 		}
 		p=p->next;
 	}
-	return p;
+	return 0;
 }
 int hash_map_lookup(hash_map_t * hm,
 					const void * key,

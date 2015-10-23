@@ -165,7 +165,7 @@ int lru_cache_insert(lru_cache_t * lru,
 		return 0;
 	}
 	int s = 0;
-	lru_entry_t * p;
+	lru_entry_t * p;//TODO:problem in here
 	s = hash_map_lookup(lru->hashmap, key,  (void **)(&p));
 	if(!p || !s){
 		printf("%s: key doesn't exist, create new one\n", __FUNCTION__);

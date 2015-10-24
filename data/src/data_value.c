@@ -5,6 +5,7 @@
 int value_clone_cbf_for_data(void ** target, const void * src)
 {
 	if(!target || !src){
+		printf("%s:%d error: input NULL\n", __FUNCTION__, __LINE__);
 		return 0;
 	}
 	data_value_t * p = (data_value_t *)malloc(sizeof(data_value_t));
@@ -12,6 +13,8 @@ int value_clone_cbf_for_data(void ** target, const void * src)
 		printf("%s: not enough space to clone value\n", __FUNCTION__);
 		return 0;
 	}
+	printf("%s:%d src addr %p, cloned addr %p\n", 
+			__FUNCTION__, __LINE__, src, (void *) p);
 	const data_value_t * s = (const data_value_t *)src;
 	int b_success = 1;
 	p->head = 0;
@@ -36,11 +39,13 @@ int value_clone_cbf_for_data(void ** target, const void * src)
 	}
 	if(!b_success){
 		/*memory allocation failed, clean up*/
+		printf("%s:%d: mem alloc failed\n", __FUNCTION__, __LINE__);
 		value_free_cbf_for_data(p);
 		return 0;
 	}
 	memcpy(p->parameters, s->parameters, sizeof(double)*rp_MAX_PARAM);
 	memcpy(p->has_parameters, s->has_parameters, sizeof(int) * rp_MAX_PARAM);
+	*target = (void *)p;
 	return 1;
 }
 

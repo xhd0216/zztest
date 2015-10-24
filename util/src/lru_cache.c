@@ -3,10 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct{
-	lru_entry_t * pointer;
-}hm_v_is_lru_entry_t_p;
-
 void lru_cache_fini(lru_cache_t *lru){
 	if(!lru){
 		return;
@@ -55,9 +51,10 @@ void lru_dump(lru_cache_t * lru, value_to_string_cb_f vts, key_to_string_cb_f kt
 int hash_value_clone_cb(void ** target, const void * pointer){
 	if(!target) return 0;
 	/* very tricky here
-	 * the goal is to clone the content of pointer (*pointer) to a (void *)v and let *target=v
+	 * the goal of hash value clone cbf is to clone the content of pointer (*pointer) to a (void *)v and let *target=v
+	 * but here, the hash entry value is a pointer to lru_entry_t
 	 */	
-
+	*target = (void *)pointer;
 	return 1;
 }
 
@@ -177,9 +174,12 @@ int lru_cache_insert(lru_cache_t * lru,
 		return 0;
 	}
 	int s = 0;
-	lru_entry_t * p;//TODO:problem in here
-	s = hash_map_lookup(lru->hashmap, key,  (void **)(&p));
-	if(!p || !s){
+	void * v=0;
+	lru_entry_t * p;
+	
+	s = hash_map_lookup(lru->hashmap, key, &v);
+	printf("%s: debug: the returned address is %p\n", __FUNCTION__, v);
+	if(!v || !s){
 		printf("%s: key doesn't exist, create new one\n", __FUNCTION__);
 		p = (lru_entry_t *) malloc(sizeof(lru_entry_t));
 		if(!p){
@@ -190,14 +190,17 @@ int lru_cache_insert(lru_cache_t * lru,
 		p->prev = 0;
 		p->value = 0;	
 		hash_map_entry_t * resp = lru_insert_to_hash_map(lru->hashmap,
-									key,
-									(const lru_entry_t *) p);
+									key, p);
 		if(resp == 0){
 			printf("%s: error inserting to hash map\n", __FUNCTION__);
 			free(p);
 			return 0;
 		}
-		p->pointer_back = resp;		
+		p->pointer_back = resp;	
+		printf("%s: debug: return addr in hashmap: %p, whose value is %p\n",
+			__FUNCTION__, (void *)resp, resp->value);
+	}else{
+		p = (lru_entry_t *)v;
 	}
 	void * new_value = 0;
 	int res = value_clone((void **)(&(new_value)), value);
@@ -240,7 +243,7 @@ int lru_cache_get(lru_cache_t * lru,
 		printf("%s: key doesn't exist\n", __FUNCTION__);
 		return 0;
 	}
-	p = (lru_entry_t *)(*v);
+	p = (lru_entry_t *)(v);
 	/* move pointer to the front of list */
 	p->prev->next = p->next;
 	p->next->prev = p->prev;

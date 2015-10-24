@@ -2,6 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+typedef struct{
+	lru_entry_t * pointer;
+}hm_v_is_lru_entry_t_p;
+
 void lru_cache_fini(lru_cache_t *lru){
 	if(!lru){
 		return;
@@ -49,7 +54,10 @@ void lru_dump(lru_cache_t * lru, value_to_string_cb_f vts, key_to_string_cb_f kt
 }
 int hash_value_clone_cb(void ** target, const void * pointer){
 	if(!target) return 0;
-	*target = (void *)pointer;
+	/* very tricky here
+	 * the goal is to clone the content of pointer (*pointer) to a (void *)v and let *target=v
+	 */	
+
 	return 1;
 }
 
@@ -84,6 +92,9 @@ void lru_free_nothing(void * foo){
 	/* this function should do nothing! */
 	printf("%s: we do nothing here -- we don't free the lru entry\n", __FUNCTION__);
 }
+
+
+
 /*make sure key does not exist in hashmap!!!*/
 hash_map_entry_t * 
 lru_insert_to_hash_map(hash_map_t * hashmap,
@@ -108,7 +119,8 @@ lru_insert_to_hash_map(hash_map_t * hashmap,
 	(*(hashmap->key_clone))(&(res->key), key);
 	printf("%s: key cloned\n", __FUNCTION__);
 	/* important here!!!*/
-	res->value = (void *)point;
+	/* hashmap entry's value is the pointer to lru entry*/
+	(res->value) = (void *)point;
 	(res->value_clone) = &hash_value_clone_cb;
 	(res->value_free) = &lru_free_nothing;
  
@@ -221,12 +233,14 @@ int lru_cache_get(lru_cache_t * lru,
 		return 0;
 	}
 	int s = 0;
+	void * v = 0;
 	lru_entry_t * p = 0;
-	s=hash_map_lookup(lru->hashmap, key, (void **)(&p));
-	if(!p || !s){
+	s=hash_map_lookup(lru->hashmap, key, (void **)(&v));
+	if(!v || !s){
 		printf("%s: key doesn't exist\n", __FUNCTION__);
 		return 0;
 	}
+	p = (lru_entry_t *)(*v);
 	/* move pointer to the front of list */
 	p->prev->next = p->next;
 	p->next->prev = p->prev;

@@ -63,7 +63,14 @@ void value_free_cbf_for_data(void * value){
 }
 
 char * value_to_string_for_data(const void * value){
-	//const data_value_t * p = (const data_value_t *)value;
-	char * str = "parameters are useful!";
+	const data_value_t * p = (const data_value_t *)value;
+	char * str = (char *) malloc(sizeof(char) * 30);
+	if(!str){
+		return "get value failed";
+	}
+	int res = sprintf(str, "parameter: %lf", p->has_parameters[0]?p->parameters[0]:0.0);
+	if(res < 1){
+		return "get value error";
+	}
 	return str;
 }

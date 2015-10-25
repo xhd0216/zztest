@@ -5,8 +5,14 @@
 #include <string.h>
 
 char * key_to_string_for_data(const void * key){
-	char * str = "this_is_a_key.";
-	return str;
+	data_key_t * k = (data_key_t *)key;
+	if(!k || !(k->key_name)){
+		return "no key";
+	}
+	if(k->key_name[0] == 0){
+		return "key is null";
+	}
+	return k->key_name;
 }
 
 int hash_function_for_data(const void * key){

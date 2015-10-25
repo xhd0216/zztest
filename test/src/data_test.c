@@ -62,7 +62,7 @@ int main(){
 			read_key(&key);
 			printf("got key\n");
 			lru_cache_get_wrap(lru, key, &data);
-			printf("got data\n");
+			printf("got data: %s\n", value_to_string_for_data((void*)data));
 			break;
 		case 3:
 			lru_delete_auto(lru);

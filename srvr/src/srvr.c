@@ -1,4 +1,5 @@
-#include "lru_cache.h"
+//#include "lru_cache.h"
+#include "data.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <unistd.h>
 
 #define SERVER_PATH_NAME "_server_file_"
 #define MSG_LENGTH 1024

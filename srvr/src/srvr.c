@@ -19,6 +19,8 @@ int b_end = 0;
 void sig_handler(int sig){
 	printf("got signal %d\n", sig);
 	b_end = 1;
+	unlink(SERVER_PATH_NAME);
+	(void)signal(sig, SIG_DFL);
 }
 
 

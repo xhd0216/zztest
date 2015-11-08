@@ -8,9 +8,19 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <signal.h>
 
-#define SERVER_PATH_NAME "_server_file_"
+#define SERVER_PATH_NAME "/home/joe/server_file/_server_file_"
 #define MSG_LENGTH 1024
+
+int b_end = 0;
+
+#define SIGNAL_T SIGINT
+void sig_handler(int sig){
+	printf("got signal %d\n", sig);
+	b_end = 1;
+}
+
 
 /*shared memory*/
 lru_cache_t * lru = NULL;
@@ -20,7 +30,6 @@ void * thread_main(void * arg){
 	int sock, msgsock, rval;
 	struct sockaddr_un server;
 	char buf[MSG_LENGTH];
-	int b_end = 0;
 	sock = socket(AF_UNIX, SOCK_STREAM, 0);
 	if(sock < 0){
 		printf("%s: opening stream socket error: %d\n", 
@@ -36,7 +45,7 @@ void * thread_main(void * arg){
 	printf("thread %s is running, socket has name %s\n", __FUNCTION__, server.sun_path);
 	/* listen, max 10 connections waiting*/
 	listen(sock, 10);
-	while(1){
+	while(!b_end){
 		printf("waiting for connection...\n");
 		msgsock = accept(sock, 0, 0);
 		if(msgsock == -1){
@@ -74,12 +83,20 @@ void * thread_main(void * arg){
 int main(int argc, char * argv[]){
 	pthread_t t1;
 	int res = 0;
-	if(argc == 2){
-		if(!strcmp(argv[1], "start")){
+	struct sigaction act;
+	if (argc == 2){
+		if (strcmp(argv[1], "start") == 0){
+			/* re-define ctrl-c action*/
+			act.sa_flags = 0;
+			sigemptyset(&act.sa_mask);
+			sigaddset(&act.sa_mask, SIGNAL_T);
+			act.sa_handler = sig_handler;
+			sigaction(SIGNAL_T, &act, 0);
+
 			pthread_mutex_lock(&mutex);
 			res = lru_cache_init_wrap(&lru);
 			pthread_mutex_unlock(&mutex);
-			if(!lru || !res){
+			if (!lru || !res){
 				printf("%s: failed to initialize cache, quit program\n", __FUNCTION__);
 				return 0;
 			}
@@ -87,7 +104,7 @@ int main(int argc, char * argv[]){
 			pthread_join(t1, NULL);
 			printf("thread joined\n");
 		}		
-	}else{
+	} else {
 		printf("invalid num. of arguments\n");
 	}
 	return 0;

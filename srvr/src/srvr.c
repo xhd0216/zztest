@@ -9,8 +9,11 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <signal.h>
+#include <errno.h>
+#include <sys/stat.h>
 
-#define SERVER_PATH_NAME "/home/joe/server_file/_server_file_"
+
+#define SERVER_PATH_NAME "./server_file/_server_file_"
 #define MSG_LENGTH 1024
 
 int b_end = 0;
@@ -28,6 +31,25 @@ void sig_handler(int sig){
 lru_cache_t * lru = NULL;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+
+int send_all(int socket, const void *buffer, size_t length)
+{
+    const void *ptr = buffer;//(const char*) buffer;
+	//printf("about to send msg %s, length %d\n", ptr, (int)length);
+    while (length > 0)
+    {
+        int i = write(socket, ptr, length);
+		printf("send() returns %d\n", i);
+        if (i < 1) {
+			perror("error sending msg");
+			printf("error sending msg: %s\n", strerror(errno));
+			return 0;
+		}
+        ptr += i;
+        length -= i;
+    }
+    return 1;
+}
 void * thread_main(void * arg){
 	int sock, msgsock, rval;
 	struct sockaddr_un server;
@@ -44,6 +66,8 @@ void * thread_main(void * arg){
 		printf("%s: error in binding stream socket\n", __FUNCTION__);
 		return 0;
 	}
+	chmod(SERVER_PATH_NAME, S_IRWXU|S_IRWXG|S_IROTH|S_IWOTH);
+	
 	printf("thread %s is running, socket has name %s\n", __FUNCTION__, server.sun_path);
 	/* listen, max 10 connections waiting*/
 	listen(sock, 10);
@@ -69,7 +93,15 @@ void * thread_main(void * arg){
 					if(strncmp(buf, "END", 3) == 0){
 						b_end = 1;
 					}
+					const char * resp_buf = "got some msg\n";
+					int ret = send_all(msgsock, (const void *)resp_buf, strlen(resp_buf));
+					if(ret){
+						printf("msg sent\n");
+					}else{
+						printf("failed to send msg\n");
+					}
 				}
+				rval = -1;
 			}
 		}
 		close(msgsock);

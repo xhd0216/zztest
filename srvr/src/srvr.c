@@ -118,29 +118,29 @@ int main(int argc, char * argv[]){
 	pthread_t t1;
 	int res = 0;
 	struct sigaction act;
-	if (argc == 2){
-		if (strcmp(argv[1], "start") == 0){
-			/* re-define ctrl-c action*/
-			act.sa_flags = 0;
-			sigemptyset(&act.sa_mask);
-			sigaddset(&act.sa_mask, SIGNAL_T);
-			act.sa_handler = sig_handler;
-			sigaction(SIGNAL_T, &act, 0);
-
-			pthread_mutex_lock(&mutex);
-			res = lru_cache_init_wrap(&lru);
-			pthread_mutex_unlock(&mutex);
-			if (!lru || !res){
-				printf("%s: failed to initialize cache, quit program\n", __FUNCTION__);
-				return 0;
-			}
-			pthread_create(&t1, NULL, &thread_main, NULL);
-			pthread_join(t1, NULL);
-			printf("thread joined\n");
-		}		
-	} else {
+	if(argc != 2){
 		printf("invalid num. of arguments\n");
+		return 0;
 	}
+	if (strcmp(argv[1], "start") == 0){
+		/* re-define ctrl-c action*/
+		act.sa_flags = 0;
+		sigemptyset(&act.sa_mask);
+		sigaddset(&act.sa_mask, SIGNAL_T);
+		act.sa_handler = sig_handler;
+		sigaction(SIGNAL_T, &act, 0);
+
+		pthread_mutex_lock(&mutex);
+		res = lru_cache_init_wrap(&lru);
+		pthread_mutex_unlock(&mutex);
+		if (!lru || !res){
+			printf("%s: failed to initialize cache, quit program\n", __FUNCTION__);
+			return 0;
+		}
+		pthread_create(&t1, NULL, &thread_main, NULL);
+		pthread_join(t1, NULL);
+		printf("thread joined\n");
+	}		
 	return 0;
 
 }

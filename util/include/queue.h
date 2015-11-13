@@ -4,7 +4,7 @@
 typedef struct queue_node_s{
 	struct queue_node_s * next;
 	struct queue_node_s * prev;
-	void * pVal;
+	const void * pVal;
 }queue_node_t;
 
 typedef int (*queue_node_clone_cbf)(void **, const void *);
@@ -16,11 +16,12 @@ typedef struct queue_s{
 	int count;
 	int max_count;
 	pthread_mutex_t q_lock;
-	queue_node_clone_cbf * clone_cb;
-	queue_node_destroy_cbf * destroy_cb;
+	//queue_node_clone_cbf * clone_cb;
+	//queue_node_destroy_cbf * destroy_cb;
 }queue_t;
 /*if pVal has same type, need to define callback to delete popped nodes*/
 /*if pVal does not have same type, how to delete them?*/
-int queue_init(queue_t **, int max, queue_node_clone_cbf *, queue_node_destroy_cbf *);
-int queue_push(queue_t *, const void *);
+//int queue_init(queue_t **, int max, queue_node_clone_cbf *, queue_node_destroy_cbf *);
+int queue_init(queue_t **, int max);
+int queue_push(queue_t *, const void *, queue_node_clone_cbf *);
 int queue_pop(queue_t *, void **);

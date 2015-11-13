@@ -1,4 +1,4 @@
-SRC = src/hash_map.c src/lru_cache.c
+SRC = src/hash_map.c src/lru_cache.c src/queue.c
 LIB = include/
 OBJ = $(SRC:.c=.o)
 mypath = ../Library/

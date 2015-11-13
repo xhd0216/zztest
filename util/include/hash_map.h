@@ -1,3 +1,5 @@
+#ifndef HASH_MAP_DEFINITIONS
+#define HASH_MAP_DEFINITIONS
 typedef int (*value_clone_cb_f)(void **, const void * source);
 typedef void (*value_free_cb_f)(void *);
 typedef int (*key_cmp_cb_f)(const void *, const void *);
@@ -54,3 +56,4 @@ void hash_map_dump(hash_map_t *,
 				key_to_string_cb_f,
 				value_to_string_cb_f);
 void hash_map_fini(hash_map_t *);
+#endif

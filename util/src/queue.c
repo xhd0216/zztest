@@ -56,34 +56,68 @@ int queue_push(queue_t * q,
 		printf("%s: null push pointer\n", __FUNCTION__);
 		return 0;
 	}
-	pthread_mutex_lock(&(q->q_lock));
-	/*have to include all these in lock*/
-	if (q->count >= q->max_count){
-		printf("%s: queue is full\n", __FUNCTION__);
-		goto error;
-	} 
+	/* if callback function clone is provided as a param 
+	 * it is ok to initialize tmp without lock
+     * otherwise, if clone is a param of queue
+	 * need to lock it because q->clone_cbf may be changed by others
+	 */
 	tmp = (queue_node_t *) malloc(sizeof(queue_node_t));
 	if(!tmp){
 		printf("%s: insufficient memory to allocate new queue node\n", __FUNCTION__);
-		goto error;
+		return 0;
 	}
+	pthread_mutex_lock(&(q->q_lock));
+	/*have to lock all these*/
+	if (q->count >= q->max_count){
+		printf("%s: queue is full\n", __FUNCTION__);
+		pthread_mutex_unlock(&(q->q_lock));
+		/* should free tmp here?*/
+		free(tmp);
+		return 0;
+	} 
 	if (!clone){
-		tmp->pVal = p;
+		tmp->pVal = (void *)p;
 	} else {
-		int ret = (*clone)((void **)&(tmp->pVal), p);
+		int ret = (*clone)(&(tmp->pVal), p);
 		if (ret<1 || !(tmp->pVal)){
 			printf("%s: failed to clone\n", __FUNCTION__);
+			pthread_mutex_unlock(&(q->q_lock));
 			free(tmp);
-			goto error;
+			return 0;
 		}
 	}
 	tmp->prev = q->end->prev;
-	tmp->prev->next = tmp;
+	q->end->prev->next = tmp;
 	q->end->prev = tmp;
 	tmp->next = q->end;
+	q->count++;
 	pthread_mutex_unlock(&(q->q_lock));
 	return 1;
-error:
+}
+void * queue_pop(queue_t * q){
+	if(!q){
+		printf("%s: q is null\n", __FUNCTION__);
+		return 0;
+	}
+	/*if(!o){
+		printf("$s: output pointer is null\n", __FUNCTION__);
+		return 0;
+	}*/
+	queue_node_t * tmp = 0;
+	pthread_mutex_lock(&(q->q_lock));
+	if (q->count <1 || q->head->next == 0 || q->head->next == q->end || q->head == q->end){
+		printf("%s: empty queue\n", __FUNCTION__);
+		pthread_mutex_unlock(&(q->q_lock));
+		return 0;
+	}
+	tmp = q->head->next;
+	q->head->next = tmp->next;
+	q->count--;
 	pthread_mutex_unlock(&(q->q_lock));
-	return 0;
+	
+	if (tmp){
+		return tmp->pVal;
+	} else {
+		return 0;
+	}	
 }

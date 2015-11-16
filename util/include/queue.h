@@ -4,7 +4,7 @@
 typedef struct queue_node_s{
 	struct queue_node_s * next;
 	struct queue_node_s * prev;
-	const void * pVal;
+	void * pVal;
 }queue_node_t;
 
 typedef int (*queue_node_clone_cbf)(void **, const void *);
@@ -23,5 +23,8 @@ typedef struct queue_s{
 /*if pVal does not have same type, how to delete them?*/
 //int queue_init(queue_t **, int max, queue_node_clone_cbf *, queue_node_destroy_cbf *);
 int queue_init(queue_t **, int max);
+/* if cbf = NULL, put the src pointer in queue_node->pVal
+ * otherwise, create new memory to clone src*/
+/* recommend to use clone = 0*/
 int queue_push(queue_t *, const void *, queue_node_clone_cbf *);
-int queue_pop(queue_t *, void **);
+void * queue_pop(queue_t *);

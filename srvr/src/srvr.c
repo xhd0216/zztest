@@ -15,10 +15,19 @@
 #define SERVER_PATH_NAME "./server_file/_server_file_"
 #define MSG_LENGTH 1024
 #define MX_LISTEN 10
-#define NUM_OF_WORKING_THREAD 4
+#define NUM_OF_WORKING_THREADS 4
 
 #define MAX_QUEUE 64
 
+
+
+
+/*shared memory*/
+lru_cache_t * lru = NULL;
+int b_end = 0;/*signal that ends the process*/
+queue_t * q = NULL;
+pthread_cond_t cond;
+pthread_mutex_t mutex;
 
 #define SIGNAL_T SIGINT
 void sig_handler(int sig){
@@ -27,26 +36,10 @@ void sig_handler(int sig){
 	unlink(SERVER_PATH_NAME);
 	//(void)signal(sig, SIG_DFL);
 }
-
-
-/*shared memory*/
-lru_cache_t * lru = NULL;
-b_end = 0;/*signal that ends the process*/
-queue_t * q = NULL;
-pthread_cond_t cond;
-pthread_mutex_t mutex;
-
 typedef struct sock_arg_s{
 	int sock;
 }sock_arg_t;
-void * worker(void * arg){
-	pthread_mutex_lock(&mutex);
-	while(!b_end){
-		pthread_cond_wait(cond, mutex);
-		printf("%s: got signal\n", __FUNCTION__);
-	}
-	pthread_mutex_unlock(&mutex);
-}
+
 int send_all(int socket, const void *buffer, size_t length)
 {
     const void *ptr = buffer;//(const char*) buffer;
@@ -64,14 +57,66 @@ int send_all(int socket, const void *buffer, size_t length)
     }
     return 1;
 }
+void * worker(void * arg){
+	int index = *(int *)arg;
+	sock_arg_t * s = 0;
+	int msgsock;
+	int rval;
+	char buf[MSG_LENGTH];
+	char resp_buf[128];
+
+	sprintf(resp_buf, "thread %d got some msg\n", index);
+	while(!b_end){
+		pthread_mutex_lock(&mutex);
+		if(q->count == 0){
+			pthread_cond_wait(&cond,&mutex);
+		}
+		s = queue_pop(q); 
+		printf("thread %d: got connection\n", index);
+		pthread_mutex_unlock(&mutex);
+		
+		msgsock = s->sock;
+		rval = 1;
+		while(rval>0){
+			bzero(buf, sizeof(buf));
+			rval = read(msgsock, buf, MSG_LENGTH);
+			if (rval < 0) {
+				printf("msg read error\n");
+			} else if (rval == 0) {
+				printf("ending connection\n");
+			} else {
+				printf("thread %d: msg read --->  %s\n", index, buf);
+				if (strcmp(buf, "END") == 0){
+					b_end = 1;
+					break;
+				}
+				int ret = send_all(msgsock, (const void *) resp_buf, 
+									strlen(resp_buf));
+				if(ret){
+					printf("thread %d: msg send\n", index);
+				} else {
+					printf("thread %d: failed to send msg\n", index);
+				}
+				
+			}
+			rval = -1;
+		}
+		close(msgsock);
+		free(s);
+	}
+	printf("thread %d exits\n", index);
+	pthread_exit(NULL);
+}
 int main(int argc, char * argv[]){
-	pthread_t t1;
 	int res = 0;
 	struct sigaction act;
 	int b_end = 0;
-	int sock, msgsock, rval;
+	int sock, msgsock;
 	struct sockaddr_un server;
-	char buf[MSG_LENGTH];
+	pthread_t threads[NUM_OF_WORKING_THREADS];
+	pthread_attr_t attr;
+
+
 	
 	if(argc != 2){
 		printf("invalid num. of arguments\n");
@@ -123,6 +168,17 @@ int main(int argc, char * argv[]){
 		/*initialize mutex and cond*/
 		pthread_mutex_init(&mutex, NULL);
 		pthread_cond_init(&cond, NULL);
+		pthread_attr_init(&attr);
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+		
+		int i = 0;
+		while(i < NUM_OF_WORKING_THREADS){
+			int * j = (int *)malloc(sizeof(int));
+			*j = i+1;
+			pthread_create(&threads[i], &attr, worker, (void *)j);
+			i++;
+		}
+
 		while(!b_end){
 			printf("waiting for connection...\n");
 			msgsock = accept(sock, 0, 0);
@@ -130,41 +186,36 @@ int main(int argc, char * argv[]){
 				printf("received msg error.\n");
 			} else {
 				/* received msg*/
-#if 0
-				rval = 1;
-				while(rval > 0){
-					bzero(buf, sizeof(buf));
-					rval = read(msgsock, buf, MSG_LENGTH);
-					if (rval<0){
-						printf("msg read error\n");
-					} else if (rval == 0){
-						printf("ending connection\n");
-					} else {
-						printf("msg read-->%s\n", buf);
-						if(strcmp(buf, "END") == 0){
-							b_end = 1;
-							break;
-						}
-						const char * resp_buf = "got some msg\n";
-						int ret = send_all(msgsock, (const void *)resp_buf, strlen(resp_buf));
-						if (ret) {
-							printf("msg sent\n");
-						} else {
-							printf("failed to send msg\n");
-						}
-					}
-					rval = -1;
+				sock_arg_t * s = (sock_arg_t *)malloc(sizeof(sock_arg_t));
+				if(!s){
+					printf("%s: not enough memory\n", __FUNCTION__);
+					continue;
 				}
-				close(msgsock);
-#endif
+				s->sock = msgsock;
+				pthread_mutex_lock(&mutex);
+				if (!queue_push(q, s, 0)){
+					printf("%s: queue is full", __FUNCTION__);
+				} else {
+					printf("push sock %d to queue\n", sock);
+					pthread_cond_broadcast(&cond);
+				}
+				pthread_mutex_unlock(&mutex);
 			}
-			if(b_end) break;
 		}
 		close(sock);
 		/*unlink file, otherwise, other socket cannot connect*/
 		unlink(SERVER_PATH_NAME);
-		printf("thread %s quits\n", __FUNCTION__);
-	}		
+		printf("main thread quits\n");
+	}	
+	int i=0;
+	while(i < NUM_OF_WORKING_THREADS){
+		pthread_join(threads[i], NULL);
+		i++;
+	}
+	pthread_attr_destroy(&attr);
+	pthread_mutex_destroy(&mutex);
+	pthread_cond_destroy(&cond);
+	
 	return 0;
 
 }

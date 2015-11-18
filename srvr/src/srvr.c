@@ -32,9 +32,12 @@ pthread_mutex_t mutex;
 #define SIGNAL_T SIGINT
 void sig_handler(int sig){
 	printf("got signal %d\n", sig);
+	pthread_mutex_lock(&mutex);
 	b_end = 1;
+	pthread_cond_broadcast(&cond);
+	pthread_mutex_unlock(&mutex);
 	unlink(SERVER_PATH_NAME);
-	//(void)signal(sig, SIG_DFL);
+	(void)signal(sig, SIG_DFL);
 }
 typedef struct sock_arg_s{
 	int sock;
@@ -68,13 +71,17 @@ void * worker(void * arg){
 	sprintf(resp_buf, "thread %d got some msg\n", index);
 	while(!b_end){
 		pthread_mutex_lock(&mutex);
-		if(q->count == 0){
+		while(!b_end && ( q->count == 0 || (s=queue_pop(q))==0)){
 			pthread_cond_wait(&cond,&mutex);
 		}
-		s = queue_pop(q); 
+		if(b_end){
+			printf("thread %d got end signal, quit\n", index);
+			pthread_mutex_unlock(&mutex);
+			break;
+		}
+		//s = queue_pop(q); 
 		printf("thread %d: got connection\n", index);
 		pthread_mutex_unlock(&mutex);
-		
 		msgsock = s->sock;
 		rval = 1;
 		while(rval>0){
@@ -103,6 +110,7 @@ void * worker(void * arg){
 		}
 		close(msgsock);
 		free(s);
+		s = 0;
 	}
 	printf("thread %d exits\n", index);
 	pthread_exit(NULL);
@@ -193,11 +201,15 @@ int main(int argc, char * argv[]){
 				}
 				s->sock = msgsock;
 				pthread_mutex_lock(&mutex);
-				if (!queue_push(q, s, 0)){
+				int rr = queue_push(q, s, 0);
+				printf("pushing sock %d to queue\n", sock);
+				if (!rr){
 					printf("%s: queue is full", __FUNCTION__);
+				} else if (q->count > 0){
+					printf("sock %d pushed to queue\n", sock);
+					pthread_cond_signal(&cond);
 				} else {
-					printf("push sock %d to queue\n", sock);
-					pthread_cond_broadcast(&cond);
+					printf("unknown error\n");
 				}
 				pthread_mutex_unlock(&mutex);
 			}

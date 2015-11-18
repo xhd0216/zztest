@@ -105,13 +105,16 @@ void * queue_pop(queue_t * q){
 	}*/
 	queue_node_t * tmp = 0;
 	pthread_mutex_lock(&(q->q_lock));
-	if (q->count <1 || q->head->next == 0 || q->head->next == q->end || q->head == q->end){
+	if (q->count <1 || q->head->next == 0 
+		|| q->head->next == q->end 
+		|| q->head == q->end) {
 		printf("%s: empty queue\n", __FUNCTION__);
 		pthread_mutex_unlock(&(q->q_lock));
 		return 0;
 	}
 	tmp = q->head->next;
 	q->head->next = tmp->next;
+	tmp->next->prev = tmp->prev;
 	q->count--;
 	pthread_mutex_unlock(&(q->q_lock));
 	

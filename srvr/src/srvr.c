@@ -49,7 +49,7 @@ int send_all(int socket, const void *buffer, size_t length)
     while (length > 0)
     {
         int i = write(socket, ptr, length);
-		printf("send() returns %d\n", i);
+		//printf("send() returns %d\n", i);
         if (i < 1) {
 			perror("error sending msg");
 			printf("error sending msg: %s\n", strerror(errno));
@@ -71,7 +71,7 @@ void * worker(void * arg){
 	sprintf(resp_buf, "thread %d got some msg\n", index);
 	while(!b_end){
 		pthread_mutex_lock(&mutex);
-		while(!b_end && ( q->count == 0 || (s=queue_pop(q))==0)){
+		while(!b_end && q->count == 0){
 			pthread_cond_wait(&cond,&mutex);
 		}
 		if(b_end){
@@ -79,26 +79,31 @@ void * worker(void * arg){
 			pthread_mutex_unlock(&mutex);
 			break;
 		}
-		//s = queue_pop(q); 
-		printf("thread %d: got connection\n", index);
+		s = queue_pop(q); 
+		printf("thread %d: got connection %p\n", index, s);
 		pthread_mutex_unlock(&mutex);
 		msgsock = s->sock;
 		rval = 1;
 		while(rval>0){
 			bzero(buf, sizeof(buf));
+			//pthread_mutex_lock(&mutex);
 			rval = read(msgsock, buf, MSG_LENGTH);
+			//pthread_mutex_unlock(&mutex);
 			if (rval < 0) {
-				printf("msg read error\n");
-			} else if (rval == 0) {
-				printf("ending connection\n");
+				printf("thread %d: msg read error, errno=%d, s=%p\n", index, errno, s);
+			} else if(rval == 0) {
+				printf("thread %d: read the end of file, s=%p\n", index, s);
 			} else {
 				printf("thread %d: msg read --->  %s\n", index, buf);
 				if (strcmp(buf, "END") == 0){
+					printf("thread %d got end signal, s=%p\n", index, s);
 					b_end = 1;
 					break;
 				}
+			//	pthread_mutex_lock(&mutex);
 				int ret = send_all(msgsock, (const void *) resp_buf, 
 									strlen(resp_buf));
+			//	pthread_mutex_unlock(&mutex);
 				if(ret){
 					printf("thread %d: msg send\n", index);
 				} else {
@@ -218,16 +223,16 @@ int main(int argc, char * argv[]){
 		/*unlink file, otherwise, other socket cannot connect*/
 		unlink(SERVER_PATH_NAME);
 		printf("main thread quits\n");
-	}	
-	int i=0;
-	while(i < NUM_OF_WORKING_THREADS){
-		pthread_join(threads[i], NULL);
-		i++;
+		
+		i=0;
+		while(i < NUM_OF_WORKING_THREADS){
+			pthread_join(threads[i], NULL);
+			i++;
+		}
+		pthread_attr_destroy(&attr);
+		pthread_mutex_destroy(&mutex);
+		pthread_cond_destroy(&cond);
 	}
-	pthread_attr_destroy(&attr);
-	pthread_mutex_destroy(&mutex);
-	pthread_cond_destroy(&cond);
-	
 	return 0;
 
 }

@@ -9,12 +9,15 @@ nt = 20
 
 def connection(thname, index):
 	# Create a UDS socket
-	#print "working thread ", index
 	sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 	ss = thname+str(index);
 	pp = ss;
 	try:
 		sock.connect(server_address)
+	except:
+		print "fail to connect to server"
+		return 0
+	try:
 		sock.sendall(ss)
 		data = sock.recv(1024)
 		if "got some msg" in data:

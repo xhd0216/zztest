@@ -83,8 +83,9 @@ void * worker(void * arg){
 		printf("thread %d: got connection %p\n", index, s);
 		pthread_mutex_unlock(&mutex);
 		msgsock = s->sock;
-		rval = 1;
-		while(rval>0){
+		printf("thread %d: got sock: %d\n", index, msgsock);
+		//rval = 1;
+		//while(rval>0){
 			bzero(buf, sizeof(buf));
 			//pthread_mutex_lock(&mutex);
 			rval = read(msgsock, buf, MSG_LENGTH);
@@ -111,8 +112,8 @@ void * worker(void * arg){
 				}
 				
 			}
-			rval = -1;
-		}
+		//	rval = -1;
+		//}
 		close(msgsock);
 		free(s);
 		s = 0;
@@ -165,6 +166,7 @@ int main(int argc, char * argv[]){
 					__FUNCTION__, sock);
 			return 0;
 		}
+		printf("the connected socket is %d\n", sock);
 		server.sun_family = AF_UNIX;
 		strcpy(server.sun_path, SERVER_PATH_NAME);
 		if(bind(sock, (struct sockaddr *)&server, sizeof(struct sockaddr_un))){
@@ -193,11 +195,20 @@ int main(int argc, char * argv[]){
 		}
 
 		while(!b_end){
+			struct sockaddr sad;
+			socklen_t sat;
 			printf("waiting for connection...\n");
-			msgsock = accept(sock, 0, 0);
+			msgsock = accept(sock, &sad, &sat);
 			if (msgsock == -1){
 				printf("received msg error.\n");
 			} else {
+				int reh =getsockname(msgsock, &sad, &sat);
+				int ii = 0;
+				printf("got sock name %d, len=%d===============\n", reh, sat);
+				while(ii < sat){
+					printf("%x ", *((unsigned int *)&sad + ii));
+					ii++;
+				}
 				/* received msg*/
 				sock_arg_t * s = (sock_arg_t *)malloc(sizeof(sock_arg_t));
 				if(!s){
@@ -207,11 +218,11 @@ int main(int argc, char * argv[]){
 				s->sock = msgsock;
 				pthread_mutex_lock(&mutex);
 				int rr = queue_push(q, s, 0);
-				printf("pushing sock %d to queue\n", sock);
+				printf("pushing sock %d to queue\n", msgsock);
 				if (!rr){
 					printf("%s: queue is full", __FUNCTION__);
 				} else if (q->count > 0){
-					printf("sock %d pushed to queue\n", sock);
+					printf("sock %d pushed to queue\n", msgsock);
 					pthread_cond_signal(&cond);
 				} else {
 					printf("unknown error\n");

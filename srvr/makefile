@@ -11,8 +11,9 @@ sources_path = $(foreach p, $(everything), ../$p/)
 libraries = $(foreach l, $(everything), ../Library/lib$l.so)
 
 include_path = $(foreach d, $(sources_path), -I$dinclude/)
-all: src/srvr.c  $(libraries)
+all: src/srvr.c  src/single_thread_server.c $(libraries)
 	gcc -Wall -Werror -pthread -g  $(include_path) -Iinclude/ -o srvr.o src/srvr.c $(libraries)
+	gcc -Wall -Werror -pthread -g $(include_path) -Iinclude/ -o single.o src/single_thread_server.c $(libraries)
 ../Library/libdata.so : ../data ../Library/libutil.so
 	$(MAKE) -C ../data
 ../Library/libutil.so : ../util

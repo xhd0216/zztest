@@ -80,12 +80,10 @@ void * worker(void * arg){
 			break;
 		}
 		s = queue_pop(q); 
-		printf("thread %d: got connection %p\n", index, s);
 		pthread_mutex_unlock(&mutex);
 		msgsock = s->sock;
-		printf("thread %d: got sock: %d\n", index, msgsock);
-		//rval = 1;
-		//while(rval>0){
+		rval = 1;
+	//	while(rval>0){
 			bzero(buf, sizeof(buf));
 			//pthread_mutex_lock(&mutex);
 			rval = read(msgsock, buf, MSG_LENGTH);

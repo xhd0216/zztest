@@ -5,7 +5,7 @@ import threading
 
 lock = threading.Lock()
 server_address = './server_file/_server_file_'
-nt = 20
+nt = 10
 
 def connection(thname, index):
 	# Create a UDS socket
@@ -25,6 +25,7 @@ def connection(thname, index):
 			lock.acquire()
 			print pp, "time", i
 			lock.release()
+		sock.close()
 	except: 
 		lock.acquire()
 		print "error ", pp
@@ -35,6 +36,12 @@ def connection(thname, index):
 #print >>sys.stderr, 'connecting to %s' % server_address
 
 for i in range(nt):
-	thread.start_new_thread(connection, ("python-", i, ));
+	#thread.start_new_thread(connection, ("python-", i, ));
 	#print "doing"
-
+	s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+	s.connect(server_address)
+	spp = "jfklsd"+str(i)
+	s.sendall(spp)
+	data = s.recv(1024)
+	print data
+	s.close()

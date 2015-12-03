@@ -200,13 +200,6 @@ int main(int argc, char * argv[]){
 			if (msgsock == -1){
 				printf("received msg error.\n");
 			} else {
-				int reh =getsockname(msgsock, &sad, &sat);
-				int ii = 0;
-				printf("got sock name %d, len=%d===============\n", reh, sat);
-				while(ii < sat){
-					printf("%x ", *((unsigned int *)&sad + ii));
-					ii++;
-				}
 				/* received msg*/
 				sock_arg_t * s = (sock_arg_t *)malloc(sizeof(sock_arg_t));
 				if(!s){

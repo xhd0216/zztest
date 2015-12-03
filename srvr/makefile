@@ -26,7 +26,8 @@ clean_subs :
 	$(MAKE) -C ../data clean
 #clean_subs : $(sources)
 #	$(foreach k, $(sources_path), $(MAKE) -C $k clean)
-clean_local: srvr.o
+clean_local: srvr.o single.o
 	-rm srvr.o
+	-rm single.o
 clean_so:
 	-rm ../Library/*.so

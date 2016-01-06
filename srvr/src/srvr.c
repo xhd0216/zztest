@@ -26,6 +26,7 @@
 lru_cache_t * lru = NULL;
 int b_end = 0;/*signal that ends the process*/
 queue_t * q = NULL;
+
 pthread_cond_t cond;
 pthread_mutex_t mutex;
 
@@ -38,6 +39,9 @@ void sig_handler(int sig){
 	pthread_mutex_unlock(&mutex);
 	unlink(SERVER_PATH_NAME);
 	(void)signal(sig, SIG_DFL);
+}
+int sock_queue_is_empty(){
+	return !q && q->count > 0?0:1;
 }
 typedef struct sock_arg_s{
 	int sock;
@@ -60,6 +64,7 @@ int send_all(int socket, const void *buffer, size_t length)
     }
     return 1;
 }
+
 void * worker(void * arg){
 	int index = *(int *)arg;
 	sock_arg_t * s = 0;
@@ -67,11 +72,17 @@ void * worker(void * arg){
 	int rval;
 	char buf[MSG_LENGTH];
 	char resp_buf[128];
+	if(!q){
+		printf("%s exit: queue not initialized\n", __FUNCTION__);
+		goto thread_exit;
+	}
 
 	sprintf(resp_buf, "thread %d got some msg\n", index);
 	while(!b_end){
+		/* check for end signal*/
+		/* wait for connection*/
 		pthread_mutex_lock(&mutex);
-		while(!b_end && q->count == 0){
+		while(!b_end &&  sock_queue_is_empty()){
 			pthread_cond_wait(&cond,&mutex);
 		}
 		if(b_end){
@@ -83,39 +94,38 @@ void * worker(void * arg){
 		pthread_mutex_unlock(&mutex);
 		msgsock = s->sock;
 		rval = 1;
-	//	while(rval>0){
-			bzero(buf, sizeof(buf));
-			//pthread_mutex_lock(&mutex);
-			rval = read(msgsock, buf, MSG_LENGTH);
-			//pthread_mutex_unlock(&mutex);
-			if (rval < 0) {
-				printf("thread %d: msg read error, errno=%d, s=%p\n", index, errno, s);
-			} else if(rval == 0) {
-				printf("thread %d: read the end of file, s=%p\n", index, s);
-			} else {
-				printf("thread %d: msg read --->  %s\n", index, buf);
-				if (strcmp(buf, "END") == 0){
-					printf("thread %d got end signal, s=%p\n", index, s);
-					b_end = 1;
-					break;
-				}
-			//	pthread_mutex_lock(&mutex);
-				int ret = send_all(msgsock, (const void *) resp_buf, 
-									strlen(resp_buf));
-			//	pthread_mutex_unlock(&mutex);
-				if(ret){
-					printf("thread %d: msg send\n", index);
-				} else {
-					printf("thread %d: failed to send msg\n", index);
-				}
-				
+		
+		bzero(buf, sizeof(buf));
+		//pthread_mutex_lock(&mutex);
+		rval = read(msgsock, buf, MSG_LENGTH);
+		//pthread_mutex_unlock(&mutex);
+		if (rval < 0) {
+			printf("thread %d: msg read error, errno=%d, s=%p\n", index, errno, s);
+		} else if(rval == 0) {
+			printf("thread %d: read the end of file, s=%p\n", index, s);
+		} else {
+			printf("thread %d: msg read --->  %s\n", index, buf);
+			if (strcmp(buf, "END") == 0){
+				printf("thread %d got end signal, s=%p\n", index, s);
+				b_end = 1;
+				break;
 			}
-		//	rval = -1;
-		//}
+			//	pthread_mutex_lock(&mutex);
+			int ret = send_all(msgsock, (const void *) resp_buf, 
+								strlen(resp_buf));
+			//	pthread_mutex_unlock(&mutex);
+			if(ret){
+				printf("thread %d: msg send\n", index);
+			} else {
+				printf("thread %d: failed to send msg\n", index);
+			}
+				
+		}
 		close(msgsock);
 		free(s);
 		s = 0;
 	}
+thread_exit:
 	printf("thread %d exits\n", index);
 	pthread_exit(NULL);
 }

@@ -5,6 +5,7 @@ SHELL=/bin/sh
 
 ut = util
 da = data
+mm = memory
 everything = $(ut) $(da)
 
 sources_path = $(foreach p, $(everything), ../$p/)

@@ -3,9 +3,9 @@ SHELL=/bin/sh
 .SUFFIXES: .c .o
 
 
+mm = memory
 ut = util
 da = data
-mm = memory
 everything = $(ut) $(da)
 
 sources_path = $(foreach p, $(everything), ../$p/)

@@ -4,7 +4,9 @@
  *
  ************************************/
 
-
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 #include "fl_alloc.h"
 
 
@@ -24,7 +26,7 @@ void extra_free_func(void * allocator, void * v)
 /* will check if b is aligned */
 int chunk_is_in_range(fl_allocator_t * alloc, void * b){
 	printf("%s: validating address, begin=%p, end=%p, addr=%p, size=%d\n",
-			alloc->begin, alloc->end, b, alloc->block_size);
+			__func__, alloc->begin, alloc->end, b, alloc->block_size);
 	if (b >= alloc->begin && b < alloc->end){
 		if ((b - alloc->begin) & alloc->block_size){
 			return ALLOC_ERR_ADDR_ALIGN_ERR;
@@ -92,8 +94,8 @@ fl_allocator_construct(fl_allocator_init_param_t * param)
 		i = j;
 		j = j + sizeof(free_list_t);
 	}
-	(free_list_t *)i->next = NULL;
-	r->head.next = (free_list_t) r->begin;
+	((free_list_t *)i)->next = NULL;
+	r->head.next = (free_list_t *) r->begin;
 	return r;
 }
 void fl_allocator_destrcut(fl_allocator_t * fl)
@@ -123,9 +125,9 @@ void * fl_alloc(fl_allocator_t * fl, int size){
 		}
 		return NULL;
 	}
-	free_list_t * tmp = (free_list_t *) fl->head.next;
-	fl->head.next = tmp->next;
-	tmp->next = NULL;
+	void * tmp = fl->head.next;
+	fl->head.next = ((free_list_t *)tmp)->next;
+	//tmp->next = NULL;
 	memset(tmp, 0, fl->block_size);
 	fl->num_avail -= 1;
 

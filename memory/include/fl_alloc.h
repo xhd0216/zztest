@@ -44,8 +44,8 @@ typedef struct free_list_s free_list_t;
 		a pointer to memory;
 		size of the memory stored in size
 */
-typedef (void *)(*extra_allocator_f)(void * alloc, int * size);
-typedef (void) (*extra_free_f)(void * alloc, void * v);
+typedef void * (*extra_allocator_f)(void * alloc, int * size);
+typedef void (*extra_free_f)(void * alloc, void * v);
 
 typedef struct free_list_allocator_s{
 	int block_size; /* size of each block, MUST be a power of 2 */

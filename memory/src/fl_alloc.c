@@ -71,7 +71,7 @@ fl_allocator_construct(fl_allocator_init_param_t * param)
 		   and, don't mess up with extra allocator	*/
 		r->begin = (void *)malloc(param->size * param->num);
 	//}
-	if (r->begin = NULL) {
+	if (r->begin == NULL) {
 		printf("%s: cannot allocate memory of size %d\n", __func__, param->size * param->num);
 		free(r);
 		return NULL;

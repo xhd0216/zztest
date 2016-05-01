@@ -6,7 +6,7 @@ SHELL=/bin/sh
 mm = memory
 ut = util
 da = data
-everything = $(ut) $(da)
+everything = $(mm) $(ut) $(da)
 
 sources_path = $(foreach p, $(everything), ../$p/)
 libraries = $(foreach l, $(everything), ../Library/lib$l.so)
@@ -19,11 +19,14 @@ all: src/srvr.c  src/single_thread_server.c $(libraries)
 	$(MAKE) -C ../data
 ../Library/libutil.so : ../util
 	$(MAKE) -C ../util
-
+../Library/libmemory.so: ../memory
+	$(MAKE) -C ../memory
 
 clean: clean_subs clean_so clean_local
 
 clean_subs : 
+	$(MAKE) -C ../util clean
+	$(MAKE) -C ../memory clean
 	$(MAKE) -C ../data clean
 #clean_subs : $(sources)
 #	$(foreach k, $(sources_path), $(MAKE) -C $k clean)

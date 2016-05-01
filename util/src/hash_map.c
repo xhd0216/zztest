@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "fl_alloc.h"
 #include "hash_map.h"
 
 void hash_map_dump(hash_map_t * hm,

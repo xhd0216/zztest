@@ -1,33 +1,33 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "fl_alloc.h"
 #include "hash_map.h"
 
 void hash_map_dump(hash_map_t * hm,
 				key_to_string_cb_f  key_print,
 				value_to_string_cb_f  value_print){
 	int i = 0;
-	while(i < HASH_MAP_MAX_BUCKETS){
-		printf("[%d]===========\n", i);
+	while(i < hm->size){
+		printf("[bucket %d]===========\n", i);
 		hash_map_entry_t * p = hm->table[i];
-		if(!p || !p->next){
-			++i;
-			continue;
-		}
-		p = p->next;
-		while(p){
-			printf("\tkey: %s\n", (*key_print)(p->key));
-			printf("\tvalue: %s\n", (*value_print)(p->value));
+		if (p && p->next){
 			p = p->next;
+			while(p){
+				printf("\tkey: %s\n", (*key_print)(p->key));
+				printf("\tvalue: %s\n", (*value_print)(p->value));
+				p = p->next;
+			}
+		} else {
+			printf("bucket is empty\n");
 		}
 		++i;
 	}
+	printf("====%d entries in total====\n", hm->entries);
 }
 
 
-
-void hash_map_free_entry(hash_map_entry_t * p, key_free_cb_f  key_f){
+#if 0
+void hash_map_free_entry(hash_map_entry_t * p, data_free_cb_f  key_f){
 	if(p){
 		if(p->key){
 			(key_f)(p->key);
@@ -38,6 +38,7 @@ void hash_map_free_entry(hash_map_entry_t * p, key_free_cb_f  key_f){
 		free(p);
 	}
 }
+
 void hash_map_fini(hash_map_t * hm){
 	if(!hm) return;
 	int i = 0;
@@ -55,33 +56,76 @@ void hash_map_fini(hash_map_t * hm){
 	free(hm);
 
 }
-int hash_map_init(hash_map_t ** hm,
+#endif
+
+void hash_map_destruct(hash_map_t * hm)
+{
+	if (hm->table){
+		int i = 0;
+		hash_map_entry_t * p;
+		hash_map_entry_t * tmp;
+		while (i < hm->size){
+			p = hm->table[i];
+			if (p && p->next){
+				p = p->next;
+				while(p){
+					tmp = p->next;
+					/* free the key */
+					if (hm->key_free) hm->key_free(hm->alloc, p->key);
+					/* free the value */
+					if (p->value_free) p->value_free(hm->alloc, p->value);
+					/* free the entry */
+					z_free(p);
+					p = tmp;
+				}
+			}
+			i++;
+		}
+	}
+	/* hm is allocated by malloc */
+	/* we do NOT free alloc here */
+	free(hm);
+}
+
+hash_map_t * hash_map_construct(alloc_t * alloc,
+				int sz,
 				hash_map_function  f,
 				key_cmp_cb_f  key_c,
-				key_free_cb_f  key_f,
-				key_clone_cb_f  key_cl){
+				data_free_cb_f  key_f,
+				data_clone_cb_f  key_cl)
+{
+	if (!alloc || sz < 1 || !f || !key_c || !key_f || !key_clone){
+		/* invalid parameter */
+		return NULL;
+	}
+	hash_map_t * hm = (hash_map_t *)malloc(sizeof(hash_map_t));
 	if(!hm) return 0;
-	*hm = malloc(sizeof(hash_map_t));
-	if(!*hm) return 0;
 	int i = 0;
-	while(i < HASH_MAP_MAX_BUCKETS){
-		(*hm)->table[i] = malloc(sizeof(hash_map_entry_t));
-		if((*hm)->table[i] == 0){
+	hm->size = sz;
+	hm->alloc = alloc;
+	hm->table = (hash_map_entry_t **)z_alloc(hm->alloc,
+														sizeof(hash_map_entry_t *) * sz);
+	if (!hm->table) {
+		free(hm);
+		return NULL;
+	}
+	while(i < sz){
+		//hm->table[i] = (hash_map_entry_t *)malloc(sizeof(hash_map_entry_t));
+		hm->table[i] = (hash_map_entry_t *)z_alloc(hm->alloc, 
+														sizeof(hash_map_entry_t));
+		if(hm->table[i] == 0){
 			return 0;
 		}
-		memset((*hm)->table[i], 0, sizeof(hash_map_entry_t));
-		(*hm)->table[i]->prev = 0;
-		(*hm)->table[i]->next = 0;
+		memset(hm->table[i], 0, sizeof(hash_map_entry_t));
+		hm->table[i]->prev = 0;
+		hm->table[i]->next = 0;
 		i++;
 	}
 	(*hm)->hash_f = f;
 	(*hm)->key_cmp = key_c;
 	(*hm)->key_free = key_f;
 	(*hm)->key_clone = key_cl;
-	return 1;
-}
-int hash_map_bucket_number_valid(int b){
-	return (b >=0 && b < HASH_MAP_MAX_BUCKETS)?1:0;
+	return hm;
 }
 
 hash_map_entry_t * 
@@ -90,8 +134,8 @@ hash_map_lookup_entry(hash_map_t * hm,
 	if(!hm || !key){
 		return 0;
 	}
-	int buc = (*(hm->hash_f))(key);
-	if(!hash_map_bucket_number_valid(buc)){
+	int buc = hm->hash_f(key);
+	if(buc < 0 || buc >= hm->size){
 		printf("%s: invalid bucket number %d\n", __FUNCTION__, buc);
 		return 0;
 	}
@@ -107,7 +151,7 @@ hash_map_lookup_entry(hash_map_t * hm,
 		}
 		p=p->next;
 	}
-	return 0;
+	return NULL;
 }
 int hash_map_lookup(hash_map_t * hm,
 					const void * key,

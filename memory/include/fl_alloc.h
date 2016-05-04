@@ -57,7 +57,7 @@ typedef struct free_list_allocator_s{
 	int min_size;   /* minimal size to allocate, 1 by default */
 	int extra_size; /* total size that allocated by extra allocator */
 	int extra_size_max; /* maximum size that allowed for extra allocate */
-	void * alloc;   /* allocator to extra memory */
+	void * alloc;   /* TODO: allocator to extra memory */
 	/* note: we don't free alloc when we destruct fl_allocator_t */
 	extra_allocator_f extra_malloc; /* function to allocate memory when fl is full */
 	extra_free_f      extra_free;
@@ -75,6 +75,9 @@ typedef struct fl_allocator_param_s{
 	extra_free_f eff;
 	int extra_size_max;
 }fl_allocator_init_param_t;
+
+
+int chunk_is_in_range(fl_allocator_t * alloc, void * b);
 
 fl_allocator_t * fl_allocator_construct(fl_allocator_init_param_t *);
 void fl_allocator_destruct(fl_allocator_t *);

@@ -25,8 +25,8 @@ alloc_t * zalloc_construct(
 		ret->mem_used = 0;
 		int i = 0;
 		while (i < num){
-			/* make sure that fl_allocator uses malloc as extra memory allocator */
-			params[i]->alloc = allocator;
+			/* make sure that fl_allocator uses NO extra memory allocator */
+			params[i]->alloc = NULL;
 			params[i]->extra_malloc = NULL;
 			params[i]->extra_free = NULL;
 			ret->mem_lists[i] = fl_allocator_construct(params[i]);

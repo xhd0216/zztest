@@ -1,4 +1,4 @@
-SRC = src/fl_alloc.c
+SRC = src/fl_alloc.c src/zalloc.c
 LIB = include/
 OBJ = $(SRC:.c=.o)
 mypath = ../Library/

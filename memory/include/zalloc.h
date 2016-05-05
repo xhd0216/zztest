@@ -8,6 +8,10 @@ typedef struct zalloc_s{
 				  /* fixed list memory usage tracked by each list */
 }alloc_t;
 
+/* zalloc_s should contain a list of fl_allocator_t
+ * each fl_allocator's size range does not overlap with each other.
+ */
+
 alloc_t * zalloc_construct(
 				void * allocator,// allocator for memory, if NULL, use malloc
 				fl_allocator_init_param_t **, 
@@ -15,7 +19,7 @@ alloc_t * zalloc_construct(
 void zalloc_destruct(void * allocator, alloc_t *);
 
 
-/* TODO: allocate an array of memories, but, how to implement 
+/* XXX: we do not support allocating array like:
  * p=zalloc( , 10, 64);
  * p = p+1;
  * ??? 
@@ -24,7 +28,7 @@ void zalloc_destruct(void * allocator, alloc_t *);
 
 /* now, we only support allocating one memory */
 void * zalloc(alloc_t *, int size);
-void zfree(alloc_t *, void *);
+void zfree(alloc_t *, void *, int);
 
 
 

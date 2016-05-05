@@ -5,7 +5,8 @@
 
 void hash_map_dump(hash_map_t * hm,
 				key_to_string_cb_f  key_print,
-				value_to_string_cb_f  value_print){
+				value_to_string_cb_f  value_print)
+{
 	int i = 0;
 	while(i < hm->size){
 		printf("[bucket %d]===========\n", i);
@@ -75,7 +76,7 @@ void hash_map_destruct(hash_map_t * hm)
 					/* free the value */
 					if (p->value_free) p->value_free(hm->alloc, p->value);
 					/* free the entry */
-					z_free(p);
+					zfree(hm->alloc, p, sizeof(hash_map_entry_t));
 					p = tmp;
 				}
 			}
@@ -83,8 +84,9 @@ void hash_map_destruct(hash_map_t * hm)
 		}
 	}
 	/* hm is allocated by malloc */
-	/* we do NOT free alloc here */
-	free(hm);
+	zfree(hm->alloc, hm->table, sizeof(hash_map_entry_t *) * hm->size);
+	zalloc_destruct(NULL, hm->alloc); //alloc is allocated by malloc, so first arg is NULL
+	free(hm); //hm is allocated by malloc, so use free, not zfree
 }
 
 hash_map_t * hash_map_construct(alloc_t * alloc,
@@ -94,7 +96,7 @@ hash_map_t * hash_map_construct(alloc_t * alloc,
 				data_free_cb_f  key_f,
 				data_clone_cb_f  key_cl)
 {
-	if (!alloc || sz < 1 || !f || !key_c || !key_f || !key_clone){
+	if (!alloc || sz < 1 || !f || !key_c || !key_f || !key_cl){
 		/* invalid parameter */
 		return NULL;
 	}
@@ -103,28 +105,30 @@ hash_map_t * hash_map_construct(alloc_t * alloc,
 	int i = 0;
 	hm->size = sz;
 	hm->alloc = alloc;
-	hm->table = (hash_map_entry_t **)z_alloc(hm->alloc,
-														sizeof(hash_map_entry_t *) * sz);
+	hm->table = (hash_map_entry_t **)zalloc(hm->alloc,
+											sizeof(hash_map_entry_t *) * sz);
 	if (!hm->table) {
 		free(hm);
 		return NULL;
 	}
 	while(i < sz){
 		//hm->table[i] = (hash_map_entry_t *)malloc(sizeof(hash_map_entry_t));
-		hm->table[i] = (hash_map_entry_t *)z_alloc(hm->alloc, 
-														sizeof(hash_map_entry_t));
+		hm->table[i] = (hash_map_entry_t *)zalloc(hm->alloc, 
+												  sizeof(hash_map_entry_t));
 		if(hm->table[i] == 0){
-			return 0;
+			printf("%s: cannot allocate memory for buckets\n", __func__);
+			hash_map_destruct(hm);
+			return NULL;
 		}
 		memset(hm->table[i], 0, sizeof(hash_map_entry_t));
 		hm->table[i]->prev = 0;
 		hm->table[i]->next = 0;
 		i++;
 	}
-	(*hm)->hash_f = f;
-	(*hm)->key_cmp = key_c;
-	(*hm)->key_free = key_f;
-	(*hm)->key_clone = key_cl;
+	hm->hash_f = f;
+	hm->key_cmp = key_c;
+	hm->key_free = key_f;
+	hm->key_clone = key_cl;
 	return hm;
 }
 
@@ -160,15 +164,16 @@ int hash_map_lookup(hash_map_t * hm,
 		return 0;
 	}
 	hash_map_entry_t * p = hash_map_lookup_entry(hm, key);
-	if(!p){
+	if(!p || !p->value_clone){
 		printf("%s: cannot find entry\n", __FUNCTION__);
 		return 0;
 	}
-	int res = (*(p->value_clone))(value, p->value);
+	void * res = (*(p->value_clone))(hm->alloc, p->value);
 	if(!res){
 		printf("%s: fail to clone value\n", __FUNCTION__);
 	}
-	return res;
+	*value = res;
+	return 1;
 }
 int hash_map_delete_entry(hash_map_t * hm,
 						const void * key){
@@ -193,8 +198,8 @@ int
 hash_map_insert(hash_map_t * hashmap,
 				const void * key,
 				const void * value,
-				value_clone_cb_f clone,
-				value_free_cb_f value_f){
+				data_clone_cb_f clone,
+				data_free_cb_f value_f){
 	if(!hashmap || !key || !value || !clone || !(hashmap->key_cmp) || !value_f){
 		return 0;
 	}

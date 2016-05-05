@@ -1,16 +1,34 @@
 #include "zalloc.h"
-
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 alloc_t * zalloc_construct(
 			void * allocator,
 			fl_allocator_init_param_t ** params,
-			int num);
+			int num)
 {
 	if (num < 1) {
 		return NULL;
 	}
+	/* validate the params */
+	int t = 1;
+	int last_size = params[0]->size;
+	while(t < num){
+		if (params[t]->size < last_size) {
+			printf("%s: fixed list size should be in increasing order\n", __func__);
+			return NULL;
+		}
+		if (params[t]->min_size <= last_size) {
+			/* fixed list size ranges should not overlap */
+			params[t]->min_size = last_size + 1;
+		}
+		last_size = params[t]->size;
+		t++;
+	}
+	alloc_t * ret = NULL;
 	if (!allocator){
 		/* use malloc */
-		alloc_t * ret = (alloc_t *)malloc(sizeof(alloc_t));
+		ret = (alloc_t *)malloc(sizeof(alloc_t));
 		if (!ret){
 			return NULL;
 		}
@@ -27,8 +45,8 @@ alloc_t * zalloc_construct(
 		while (i < num){
 			/* make sure that fl_allocator uses NO extra memory allocator */
 			params[i]->alloc = NULL;
-			params[i]->extra_malloc = NULL;
-			params[i]->extra_free = NULL;
+			params[i]->eaf = NULL;
+			params[i]->eff = NULL;
 			ret->mem_lists[i] = fl_allocator_construct(params[i]);
 			if (!ret->mem_lists[i]){
 				/* failed to construct fixed list, destruct the fl */
@@ -39,8 +57,9 @@ alloc_t * zalloc_construct(
 		}
 	} else {
 		/* TODO: use allocator to get memory */
-		return NULL;
-	}	
+		//return NULL;
+	}
+	return ret;
 }
 
 void zalloc_destruct(void * allocator, alloc_t * za){
@@ -79,7 +98,7 @@ void * zalloc(alloc_t * za, int size){
 	return ret;
 }
 /* need to use size here */
-void zfree(alloc_t *, void * p, int size){
+void zfree(alloc_t * za, void * p, int size){
 	int i = 0;
 	while(i < za->n_lists){
 		/* need to check range, not only the size */

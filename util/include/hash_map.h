@@ -5,7 +5,8 @@
 //typedef void (*value_free_cb_f)(void *);
 //typedef int (*key_clone_cb_f)(void **, const void *);
 //typedef void (*key_free_cb_f)(void *);
-//typedef char * (*key_to_string_cb_f)(const void *);
+typedef char * (*key_to_string_cb_f)(const void *);
+typedef char * (*value_to_string_cb_f)(const void *);
 
 
 //typedef struct alloc_s alloc_t;
@@ -72,6 +73,7 @@ int hash_map_lookup(hash_map_t *,
 				  data_free_cb_f,
 				  data_clone_cb_f);*/
 hash_map_t * hash_map_construct(alloc_t *,
+								int,
 								hash_map_function,
 								key_cmp_cb_f,
 								data_free_cb_f,
@@ -84,6 +86,6 @@ int hash_map_insert(hash_map_t *,
 					data_free_cb_f);
 void hash_map_dump(hash_map_t *,
 				key_to_string_cb_f,
-				value_to_string_cb_f);
+				data_to_string_cb_f);
 void hash_map_destruct(hash_map_t *);
 #endif

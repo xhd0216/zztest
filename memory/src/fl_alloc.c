@@ -57,6 +57,9 @@ fl_allocator_construct(fl_allocator_init_param_t * param)
 		printf("%s: chunk number is not a power of 2\n", __func__);
 		return NULL;
 	}
+	if (param->min_size >= param->size) {
+		return NULL;
+	}
 	/* Note: r will use malloc; not necessarily a user defined one */
 	fl_allocator_t * r = (fl_allocator_t *)malloc(sizeof(fl_allocator_t));
 

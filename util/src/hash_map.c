@@ -26,6 +26,19 @@ void hash_map_dump(hash_map_t * hm,
 	printf("====%d entries in total====\n", hm->entries);
 }
 
+void
+hash_map_free_entry(hash_map_t * hm, hash_map_entry_t * p) {
+	if (!hm || !p){
+		return;
+	}
+	if (p->key && hm->key_free) {
+		hm->key_free(hm->alloc, p->key);
+	}
+	if (p->value && p->value_free) {
+		p->value_free(hm->alloc, p->value);
+	}
+	zfree(hm->alloc, p, sizeof(hash_map_entry_t));
+}
 
 #if 0
 void hash_map_free_entry(hash_map_entry_t * p, data_free_cb_f  key_f){
@@ -71,12 +84,7 @@ void hash_map_destruct(hash_map_t * hm)
 				p = p->next;
 				while(p){
 					tmp = p->next;
-					/* free the key */
-					if (hm->key_free) hm->key_free(hm->alloc, p->key);
-					/* free the value */
-					if (p->value_free) p->value_free(hm->alloc, p->value);
-					/* free the entry */
-					zfree(hm->alloc, p, sizeof(hash_map_entry_t));
+					hash_map_free_entry(hm, p);
 					p = tmp;
 				}
 			}
@@ -185,7 +193,9 @@ int hash_map_delete_entry(hash_map_t * hm,
 	p->prev->next = p->next;
 	if(p->next) p->next->prev = p->prev;
 	/* free hash_map_entry_t*/
-	hash_map_free_entry(p, hm->key_free);
+	//hash_map_free_entry(p, hm->key_free);
+	if(hm->key_free) hm->key_free(hm->alloc, p->key);
+	if(p && p->value_free) p->value_free(hm->alloc, p->value);
 	return 1;
 }
 
@@ -203,40 +213,43 @@ hash_map_insert(hash_map_t * hashmap,
 	if(!hashmap || !key || !value || !clone || !(hashmap->key_cmp) || !value_f){
 		return 0;
 	}
-	void * new_value = 0;
-	int res = 0;
-	int is_new = 0;
-	hash_map_entry_t * new_node;
-	res = (*clone)(&(new_value), value);
-	if(!(new_value) || !res){
-		printf("%s: error cloning memory for value\n", __FUNCTION__);
-		return 0;
-	}
-	new_node = hash_map_lookup_entry(hashmap, key);
+	int replace = 0;
+	hash_map_entry_t * new_node = hash_map_lookup_entry(hashmap, key);
 	if(new_node){
 		printf("%s: entry already exists, update it\n", __FUNCTION__);
-		is_new = 1;
+		replace = 1;
 		/* if the key already exists, discard old value */
-		(*(new_node->value_free))(new_node->value);
+		if (new_node->value_free && new_node->value) {
+			(*(new_node->value_free))(hashmap->alloc, new_node->value);
+		}
 		/* we keep the old key here. Assuming transitivity of key_cmp_cb_f*/
-	}else{
+	} else {
 		printf("%s: inserting new entry\n", __FUNCTION__);
-		new_node = (hash_map_entry_t *) malloc(sizeof(hash_map_entry_t));
+		new_node = (hash_map_entry_t *)zalloc(hashmap->alloc, sizeof(hash_map_entry_t));
 		if(!new_node){
 			printf("%s: error allocating memory\n", __FUNCTION__);
 			return 0;
 		}
 		/*clone key*/
-		(*(hashmap->key_clone))(&(new_node->key), key);
+		new_node->key = (*(hashmap->key_clone))(hashmap->alloc, key);
+		if (!new_node->key) {
+			printf("%s: error cloning key\n", __func__);
+			zfree(hashmap->alloc, new_node, sizeof(hash_map_entry_t));
+			return 0;
+		}
 	}
-	new_node->value = new_value;
+	new_node->value = (*clone)(hashmap->alloc, value);
+	if(!(new_node->value)){
+		printf("%s: error cloning memory for value\n", __FUNCTION__);
+		return 0;
+	}
 	new_node->value_clone = clone;
 	new_node->value_free = value_f;
-	if(is_new) return 1;
+	if(replace) return 1;
 	int buc = (*(hashmap->hash_f))(key);
-	if(!hash_map_bucket_number_valid(buc)){
+	if (buc >= hashmap->size || buc < 0){
 		printf("%s: bucket number not valid: %d\n", __FUNCTION__, buc);
-		hash_map_free_entry(new_node, hashmap->key_free);
+		hash_map_free_entry(hashmap, new_node);
 		return 0;
 	}
 	hash_map_entry_t * p = hashmap->table[buc];
@@ -247,5 +260,4 @@ hash_map_insert(hash_map_t * hashmap,
 	p->next = new_node;
 	new_node->prev = p;
 	return 1;
-
 }

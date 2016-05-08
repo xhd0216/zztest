@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void lru_cache_fini(lru_cache_t *lru){
+void lru_cache_destruct(lru_cache_t *lru){
 	if(!lru){
 		return;
 	}
@@ -11,13 +11,12 @@ void lru_cache_fini(lru_cache_t *lru){
 	lru_entry_t * next;
 	while(p){
 		next = p->next;
-		p->value_free(p->value);
-		free(p);
+		p->value_free(lru->alloc, p->value);
+		zfree(lru->alloc, p, sizeof(lru_entry_t));
 		p = next;
 	}
-	hash_map_fini(lru->hashmap);
+	hash_map_destruct(lru->hashmap);
 	
-
 }
 void lru_dump(lru_cache_t * lru, value_to_string_cb_f vts, key_to_string_cb_f kts){
 	if(!lru){

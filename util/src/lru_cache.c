@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* XXX: need to destruct lru->alloc outside this function */
 void lru_cache_destruct(lru_cache_t *lru){
 	if(!lru){
 		return;
@@ -16,7 +17,7 @@ void lru_cache_destruct(lru_cache_t *lru){
 		p = next;
 	}
 	hash_map_destruct(lru->hashmap);
-	
+	zfree(lru->alloc, lru);
 }
 void lru_dump(lru_cache_t * lru, value_to_string_cb_f vts, key_to_string_cb_f kts){
 	if(!lru){
@@ -126,40 +127,42 @@ lru_insert_to_hash_map(hash_map_t * hashmap,
 	res->prev = p;
 	return res;
 }
-int lru_cache_init(lru_cache_t ** lru,
+lru_cache_t * lru_cache_construct(alloc_t * alloc,
+				int sz,
 				hash_map_function hashfunction,
 				key_cmp_cb_f key_cmp,
 				key_free_cb_f key_free,
 				key_clone_cb_f key_clone){
-	if(!lru) return 0;
-	*lru = (lru_cache_t *) malloc(sizeof(lru_cache_t));
-	if(!*lru){
+	if (!alloc || sz<1 || hashfunction || key_cmp || key_free || key_clone) {
+		printf("%s: invalid argument\n", __func__);
+		return NULL;
+	}
+	/* lru_cache_t is allocated by zalloc, like hash_map_construct */
+	lru_cache_t * ret = (lru_cache_t *) zalloc(alloc, sizeof(lru_cache_t));
+	if(!ret){
 		printf("init: fail to allocate memory for lru\n");
-		return 0;
+		return ret;
 	}
-	lru_cache_t * lp = *lru;
-	lp->head = (lru_entry_t*)malloc(sizeof(lru_entry_t));
-	lp->tail = (lru_entry_t*)malloc(sizeof(lru_entry_t));
-	if(!((*lru)->head) || !((*lru)->tail)){
+	ret->alloc = alloc;
+	ret->head = (lru_entry_t*)zalloc(ret->alloc, sizeof(lru_entry_t));
+	ret->tail = (lru_entry_t*)zalloc(ret->alloc, sizeof(lru_entry_t));
+	if(!ret->head || !ret->tail){
 		printf("init: fail to allocate memory\n");
-		free(*lru);
-		*lru = 0;
-		return 0;
+		lru_cache_destruct(ret);
+		return NULL;
 	}
-	int res = hash_map_init(&((*lru)->hashmap), hashfunction, key_cmp, key_free, key_clone);
-	if(!res || !((*lru)->hashmap)){
+	//XXX: hashmap and lru will use the same alloc
+	ret->hashmap = hash_map_construct(ret->alloc, sz, hashfunction, key_cmp, key_free, key_clone);
+	if(!ret->hashmap){
 		printf("init: fail to allocate memory for hashmap\n");
-		free((*lru)->head);
-		free((*lru)->tail);
-		free(*lru);
-		*lru =0;
-		return 0;
+		lru_cache_destruct(ret);
+		return NULL;
 	}
-	(*lru)->head->prev = 0;
-	(*lru)->head->next = (*lru)->tail;
-	(*lru)->tail->prev = (*lru)->head;
-	(*lru)->tail->next = 0;
-	return 1;
+	ret->head->prev = NULL;
+	ret->head->next = (*lru)->tail;
+	ret->tail->prev = (*lru)->head;
+	ret->tail->next = NULL;
+	return ret;
 }
 
 

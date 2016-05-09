@@ -1,3 +1,4 @@
+#include "zalloc.h"
 #include "hash_map.h"
 
 typedef struct lru_entry_s{
@@ -10,16 +11,19 @@ typedef struct lru_entry_s{
 }lru_entry_t;
 typedef struct lru_cache_s{
 	alloc_t * alloc;
+	/* add a lock */
 	hash_map_t * hashmap;
 	lru_entry_t * head;
 	lru_entry_t * tail;
 }lru_cache_t;
 
 lru_cache_t *
-lru_cache_constuct(hash_map_function,
+lru_cache_constuct(alloc_t *,
+				hash_map_function,
 				key_cmp_fb_f,
 				data_free_cb_f,
 				data_clone_cb_f);
+/* TODO: will destruct lru only, lru->alloc will need to destruct seperately */
 void
 lru_cache_destruct(lru_cache_t *);
 /*

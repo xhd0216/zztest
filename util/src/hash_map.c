@@ -93,8 +93,9 @@ void hash_map_destruct(hash_map_t * hm)
 	}
 	/* hm is allocated by malloc */
 	zfree(hm->alloc, hm->table, sizeof(hash_map_entry_t *) * hm->size);
-	zalloc_destruct(NULL, hm->alloc); //alloc is allocated by malloc, so first arg is NULL
-	free(hm); //hm is allocated by malloc, so use free, not zfree
+	//zalloc_destruct(NULL, hm->alloc); //alloc is allocated by malloc, so first arg is NULL
+	zfree(hm->alloc, hm); //hm is allocated by zalloc, so use zfree, not free
+	//XXX: because hm->alloc == lru->alloc, hm->alloc will be destructed in lru_destruct
 }
 
 hash_map_t * hash_map_construct(alloc_t * alloc,
@@ -108,7 +109,9 @@ hash_map_t * hash_map_construct(alloc_t * alloc,
 		/* invalid parameter */
 		return NULL;
 	}
-	hash_map_t * hm = (hash_map_t *)malloc(sizeof(hash_map_t));
+	/* XXX: hm is allocated by zalloc, so when destruct, destruct hm only, 
+	 * do NOT destruct hm->alloc */
+	hash_map_t * hm = (hash_map_t *)zalloc(alloc, sizeof(hash_map_t));
 	if(!hm) return 0;
 	int i = 0;
 	hm->size = sz;

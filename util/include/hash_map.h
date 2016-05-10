@@ -78,6 +78,10 @@ hash_map_t * hash_map_construct(alloc_t *,
 								key_cmp_cb_f,
 								data_free_cb_f,
 								data_clone_cb_f);
+/* this function returns the pointer to the value */
+hash_map_entry_t *
+hash_map_lookup_entry(hash_map_t *,
+					const void * key);
 /* copy value using call back function */
 int hash_map_insert(hash_map_t *,
 					const void * key,

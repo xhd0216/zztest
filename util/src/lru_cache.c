@@ -21,7 +21,7 @@ void lru_cache_destruct(lru_cache_t *lru){
 }
 void lru_dump(lru_cache_t * lru, value_to_string_cb_f vts, key_to_string_cb_f kts){
 	if(!lru){
-		printf("empty string\n");
+		printf("error cache parameter\n");
 		return;
 	}
 	lru_entry_t * p = lru->head->next;
@@ -169,21 +169,19 @@ lru_cache_t * lru_cache_construct(alloc_t * alloc,
 int lru_cache_insert(lru_cache_t * lru,
 					const void * key,
 					const void * value,
-					value_clone_cb_f value_clone,
-					value_free_cb_f value_free){
+					data_clone_cb_f value_clone,
+					data_free_cb_f value_free){
 
 	if(!lru || !key  || !value) {
 		return 0;
 	}
-	int s = 0;
-	void * v=0;
 	lru_entry_t * p;
 	
-	s = hash_map_lookup(lru->hashmap, key, &v);
+	hash_map_entry_t * hashnode = hash_map_lookup_entry(lru->hashmap, key);
 	printf("%s: debug: the returned address is %p\n", __FUNCTION__, v);
-	if(!v || !s){
+	if(!hashnode){
 		printf("%s: key doesn't exist, create new one\n", __FUNCTION__);
-		p = (lru_entry_t *) malloc(sizeof(lru_entry_t));
+		p = (lru_entry_t *) zalloc(lru->alloc, sizeof(lru_entry_t));
 		if(!p){
 			printf("%s: error allocating memory\n", __FUNCTION__);
 			return 0;
@@ -195,28 +193,27 @@ int lru_cache_insert(lru_cache_t * lru,
 									key, p);
 		if(resp == 0){
 			printf("%s: error inserting to hash map\n", __FUNCTION__);
-			free(p);
+			zfree(lru->alloc, p);
 			return 0;
 		}
 		p->pointer_back = resp;	
 		printf("%s: debug: return addr in hashmap: %p, whose value is %p\n",
 			__FUNCTION__, (void *)resp, resp->value);
 	}else{
-		p = (lru_entry_t *)v;
+		p = (lru_entry_t *)hashnode->value;
 	}
-	void * new_value = 0;
-	int res = value_clone((void **)(&(new_value)), value);
-	if(!res || !(new_value)){
+	void * new_value = value_clone(lru->alloc, value);
+	if(!(new_value)){
 		/* fails to clone value to p */
 		printf("%s: fail to clone value\n", __FUNCTION__);
-		free(p);
+		zfree(lru->alloc,p);
 		return 0;
 	}
 	printf("%s: value cloned\n", __FUNCTION__);
 	/* copy value */
 	if(p->value){
 		printf("%s: discard old value\n", __FUNCTION__);
-		p->value_free(p->value);
+		p->value_free(lru->alloc, p->value);
 	}
 	p->value = new_value;
 	p->value_free = value_free;

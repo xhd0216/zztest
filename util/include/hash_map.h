@@ -1,23 +1,11 @@
 #ifndef HASH_MAP_DEFINITIONS
 #define HASH_MAP_DEFINITIONS
 #include "zalloc.h"
-//typedef int (*value_clone_cb_f)(void **, const void * source);
-//typedef void (*value_free_cb_f)(void *);
-//typedef int (*key_clone_cb_f)(void **, const void *);
-//typedef void (*key_free_cb_f)(void *);
 typedef char * (*key_to_string_cb_f)(const void *);
 typedef char * (*value_to_string_cb_f)(const void *);
 
-
-//typedef struct alloc_s alloc_t;
-/* struct key_s should have a clone and a free method */
-//typedef struct key_s key_t;
-
-/*struct value_s should have a clone and a free method */
-//typedef struct value_s value_t;
-
 /* function to clone a value, first parameter is the allocator */
-typedef void * (*data_clone_cb_f)(alloc_t * alloc, const key_t * source);
+typedef void * (*data_clone_cb_f)(alloc_t * alloc, const void * source);
 typedef void   (*data_free_cb_f)(alloc_t *, void *);
 typedef int    (*key_cmp_cb_f)(const void *, const void *);
 typedef char * (*data_to_string_cb_f)(const void *);
@@ -45,7 +33,7 @@ typedef struct hash_map_s{
 	 * different format
 	 */
 	alloc_t             * alloc;
-	// need a lock here;
+	// TODO:need a lock here;
 	hash_map_function   hash_f;
 	key_cmp_cb_f        key_cmp;
 	data_clone_cb_f     key_clone;
@@ -64,14 +52,10 @@ int hash_map_delete_entry(hash_map_t *,
  */
 
 /* clone value using call back function */
-int hash_map_lookup(hash_map_t *,
-					const void * key,
-					void ** value);
-/*int hash_map_init(hash_map_t **,
-				  hash_map_function,
-				  key_cmp_cb_f,
-				  data_free_cb_f,
-				  data_clone_cb_f);*/
+/* note: this function will NOT allocate memory for the return value */
+void * hash_map_lookup_value(hash_map_t *,
+					alloc_t *, /* allocator to the returned value */
+					const void * key);
 hash_map_t * hash_map_construct(alloc_t *,
 								int,
 								hash_map_function,

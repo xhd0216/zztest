@@ -151,12 +151,12 @@ hash_map_lookup_entry(hash_map_t * hm,
 	}
 	int buc = hm->hash_f(key);
 	if(buc < 0 || buc >= hm->size){
-		printf("%s: invalid bucket number %d\n", __FUNCTION__, buc);
+		printf("%s: invalid bucket number %d\n", __func__, buc);
 		return 0;
 	}
 	hash_map_entry_t * p = hm->table[buc];
 	if(!p){
-		printf("%s: hashmap->table[%d] is NULL\n", __FUNCTION__, buc);
+		printf("%s: hashmap->table[%d] is NULL\n", __func__, buc);
 		return 0;
 	}
 	p = p->next;
@@ -168,23 +168,23 @@ hash_map_lookup_entry(hash_map_t * hm,
 	}
 	return NULL;
 }
-int hash_map_lookup(hash_map_t * hm,
-					const void * key,
-					void ** value){
+void * hash_map_lookup_value(hash_map_t * hm,
+					alloc_t * alloc,
+					const void * key)
+{
 	if(!hm || !key || !value){
 		return 0;
 	}
 	hash_map_entry_t * p = hash_map_lookup_entry(hm, key);
 	if(!p || !p->value_clone){
-		printf("%s: cannot find entry\n", __FUNCTION__);
-		return 0;
+		printf("%s: cannot find entry\n", __func__);
+		return NULL;
 	}
-	void * res = (*(p->value_clone))(hm->alloc, p->value);
+	void * res = (*(p->value_clone))(alloc, p->value);
 	if(!res){
-		printf("%s: fail to clone value\n", __FUNCTION__);
+		printf("%s: fail to clone value\n", __func__);
 	}
-	*value = res;
-	return 1;
+	return res;
 }
 int hash_map_delete_entry(hash_map_t * hm,
 						const void * key){

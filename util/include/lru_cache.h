@@ -15,6 +15,7 @@ typedef struct lru_cache_s{
 	hash_map_t * hashmap;
 	lru_entry_t * head;
 	lru_entry_t * tail;
+	int max_entries; // max num of entries
 }lru_cache_t;
 
 lru_cache_t *

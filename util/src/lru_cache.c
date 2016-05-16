@@ -170,8 +170,8 @@ int lru_cache_insert(lru_cache_t * lru,
 					const void * key,
 					const void * value,
 					data_clone_cb_f value_clone,
-					data_free_cb_f value_free){
-
+					data_free_cb_f value_free)
+{
 	if(!lru || !key  || !value) {
 		return 0;
 	}

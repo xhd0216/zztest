@@ -48,15 +48,6 @@ void lru_dump(lru_cache_t * lru, value_to_string_cb_f vts, key_to_string_cb_f kt
 	}
 	printf("============\n");
 }
-int hash_value_clone_cb(void ** target, const void * pointer){
-	if(!target) return 0;
-	/* very tricky here
-	 * the goal of hash value clone cbf is to clone the content of pointer (*pointer) to a (void *)v and let *target=v
-	 * but here, the hash entry value is a pointer to lru_entry_t
-	 */	
-	*target = (void *)pointer;
-	return 1;
-}
 
 
 int lru_delete_auto(lru_cache_t * lru){
@@ -90,7 +81,17 @@ void lru_free_nothing(void * foo){
 	printf("%s: we do nothing here -- we don't free the lru entry\n", __FUNCTION__);
 }
 
+void * hash_value_clone_cb(alloc_t * alloc, const void * pointer){
+	if(!alloc) return 0;
+	/* very tricky here
+	 * the goal of hash value clone cbf is to clone the content of pointer (*pointer) to a (void *)v and let *target=v
+	 * but here, the hash entry value is a pointer to lru_entry_t
+	 */	
+	return (void *) pointer;
+}
 
+#if 0
+// we should use int hash_map_insert
 
 /*make sure key does not exist in hashmap!!!*/
 hash_map_entry_t * 
@@ -107,7 +108,8 @@ lru_insert_to_hash_map(hash_map_t * hashmap,
 		printf("%s: hashmap->table[%d] is NULL\n", __FUNCTION__, buc);
 		return 0;
 	}
-	hash_map_entry_t * res = (hash_map_entry_t *) malloc(sizeof(hash_map_entry_t));
+	hash_map_entry_t * res = (hash_map_entry_t *)zalloc(hash->alloc, 
+														sizeof(hash_map_entry_t));
 	if(!res){
 		printf("%s: fail to allocate memory\n", __FUNCTION__);
 		return 0;
@@ -127,6 +129,7 @@ lru_insert_to_hash_map(hash_map_t * hashmap,
 	res->prev = p;
 	return res;
 }
+#endif /*zero*/
 lru_cache_t * lru_cache_construct(alloc_t * alloc,
 				int sz,
 				hash_map_function hashfunction,
@@ -188,14 +191,19 @@ int lru_cache_insert(lru_cache_t * lru,
 		}
 		p->next = 0;
 		p->prev = 0;
-		p->value = 0;	
-		hash_map_entry_t * resp = lru_insert_to_hash_map(lru->hashmap,
+		p->value = 0;
+		int resh = hash_map_insert(lru->hashmap, 
+									key, p, 
+									hash_value_clone_cb, 
+									lru_free_nothing);	
+		/*hash_map_entry_t * resp = lru_insert_to_hash_map(lru->hashmap,
 									key, p);
+		
 		if(resp == 0){
 			printf("%s: error inserting to hash map\n", __FUNCTION__);
 			zfree(lru->alloc, p);
 			return 0;
-		}
+		}*/
 		p->pointer_back = resp;	
 		printf("%s: debug: return addr in hashmap: %p, whose value is %p\n",
 			__FUNCTION__, (void *)resp, resp->value);

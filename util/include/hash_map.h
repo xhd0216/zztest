@@ -66,6 +66,7 @@ hash_map_t * hash_map_construct(alloc_t *,
 hash_map_entry_t *
 hash_map_lookup_entry(hash_map_t *,
 					const void * key);
+
 /* copy value using call back function */
 int hash_map_insert(hash_map_t *,
 					const void * key,

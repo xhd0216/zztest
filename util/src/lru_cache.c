@@ -196,17 +196,14 @@ int lru_cache_insert(lru_cache_t * lru,
 									key, p, 
 									hash_value_clone_cb, 
 									lru_free_nothing);	
-		/*hash_map_entry_t * resp = lru_insert_to_hash_map(lru->hashmap,
-									key, p);
-		
-		if(resp == 0){
+		if(resh == 0){
 			printf("%s: error inserting to hash map\n", __FUNCTION__);
 			zfree(lru->alloc, p);
 			return 0;
-		}*/
-		p->pointer_back = resp;	
-		printf("%s: debug: return addr in hashmap: %p, whose value is %p\n",
-			__FUNCTION__, (void *)resp, resp->value);
+		}
+		p->pointer_back = hash_map_lookup_entry(lru->hashmap, key);	
+		printf("%s: debug: return addr in hashmap: %p\n",
+			__FUNCTION__, (void *)p->pointer_back);
 	}else{
 		p = (lru_entry_t *)hashnode->value;
 	}
@@ -236,17 +233,17 @@ int lru_cache_insert(lru_cache_t * lru,
 	return 1;
 }
 
-int lru_cache_get(lru_cache_t * lru,
+int lru_cache_get(alloc_t * alloc,
+				  lru_cache_t * lru,
 				  const void * key,
-				  void ** value){
-	if(!lru || !key ||  !value) {
+				  void ** res){
+	if(!lru || !key ||  !res || !alloc) {
 		return 0;
 	}
-	int s = 0;
 	void * v = 0;
 	lru_entry_t * p = 0;
-	s=hash_map_lookup(lru->hashmap, key, (void **)(&v));
-	if(!v || !s){
+	v=hash_map_lookup_value(lru->hashmap, key);
+	if(!v){
 		printf("%s: key doesn't exist\n", __FUNCTION__);
 		return 0;
 	}
@@ -259,11 +256,10 @@ int lru_cache_get(lru_cache_t * lru,
 	lru->head->next = p;
 	p->prev = lru->head;
 	/* copy value then exit */
-	int res = p->value_clone(value, (const void *)(p->value));
-	if(res<1 || !*value){
-		printf("%s: cannot allocate memory\n", __FUNCTION__);
+	*res = p->value_clone(alloc, p->value);
+	if(!*res){
+		printf("%s: cannot clone value\n", __FUNCTION__);
 		return 0;
 	}
-	//memcpy(*value, p->value, p->value_size);
 	return 1;
 }

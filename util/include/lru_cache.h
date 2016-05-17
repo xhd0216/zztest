@@ -34,9 +34,10 @@ int lru_cache_init(lru_cache_t **,
 				data_free_cb_f keyf,
 				data_clone_cb_fk eyc);
 */
-int lru_cache_get(lru_cache_t *,
-				  const void * key,
-				  void ** target);
+int lru_cache_get(allot_t *,
+					lru_cache_t *,
+				    const void * key,
+					void ** res);
 int lru_cache_insert(lru_cache_t *,
 					 const void * key,
 					 const void * value,

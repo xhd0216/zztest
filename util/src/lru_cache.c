@@ -4,7 +4,7 @@
 #include <string.h>
 
 /* XXX: need to destruct lru->alloc outside this function */
-void lru_cache_destruct(lru_cache_t *lru){
+alloc_t * lru_cache_destruct(lru_cache_t *lru){
 	if(!lru){
 		return;
 	}
@@ -17,7 +17,9 @@ void lru_cache_destruct(lru_cache_t *lru){
 		p = next;
 	}
 	hash_map_destruct(lru->hashmap);
+	allot_t * res = lru->alloc;
 	zfree(lru->alloc, lru);
+	return res;
 }
 void lru_dump(lru_cache_t * lru, value_to_string_cb_f vts, key_to_string_cb_f kts){
 	if(!lru){
@@ -50,7 +52,7 @@ void lru_dump(lru_cache_t * lru, value_to_string_cb_f vts, key_to_string_cb_f kt
 }
 
 
-int lru_delete_auto(lru_cache_t * lru){
+int lru_remove_least_used(lru_cache_t * lru){
 	if(!lru || !lru->tail || !lru->head || lru->tail->prev == lru->head){
 		return 0;
 	}
@@ -59,6 +61,9 @@ int lru_delete_auto(lru_cache_t * lru){
 	lru->tail->prev = p->prev;
 	hash_map_entry_t * pb = p->pointer_back;
 	/* should assert pb->value == p*/
+	if (!pb || pb->value != p) {
+		printf("%s: error: records in linkedlist and hashmap don't match\n", __func__);
+	}
 	if(pb){
 		if(pb->prev){
 			pb->prev->next = pb->next;
@@ -66,13 +71,10 @@ int lru_delete_auto(lru_cache_t * lru){
 				pb->next->prev = pb->prev;
 			}
 		}
-		/* free pb->key*/
-		(*(lru->hashmap->key_free))(pb->key);
-		/* do NOT free pb->value, because pb->value == p*/
-		free(pb);
+		hash_map_free_entry(lru->hashmap, pb);
 	}
-	(p->value_free)(p->value);
-	free(p);
+	(p->value_free)(lru->alloc, p->value);
+	zfree(lru->alloc, p, sizeof(lru_entry_t));
 	return 1;
 }
 
@@ -179,7 +181,7 @@ int lru_cache_insert(lru_cache_t * lru,
 		return 0;
 	}
 	lru_entry_t * p;
-	
+	int existed = 0;
 	hash_map_entry_t * hashnode = hash_map_lookup_entry(lru->hashmap, key);
 	printf("%s: debug: the returned address is %p\n", __FUNCTION__, v);
 	if(!hashnode){
@@ -194,24 +196,25 @@ int lru_cache_insert(lru_cache_t * lru,
 		p->value = 0;
 		int resh = hash_map_insert(lru->hashmap, 
 									key, p, 
-									hash_value_clone_cb, 
-									lru_free_nothing);	
+									hash_value_clone_cb, //consider NULL?
+									lru_free_nothing);   //consider NULL?	
 		if(resh == 0){
 			printf("%s: error inserting to hash map\n", __FUNCTION__);
-			zfree(lru->alloc, p);
+			zfree(lru->alloc, p, sizeof(lru_entry_t));
 			return 0;
 		}
 		p->pointer_back = hash_map_lookup_entry(lru->hashmap, key);	
 		printf("%s: debug: return addr in hashmap: %p\n",
 			__FUNCTION__, (void *)p->pointer_back);
 	}else{
+		existed = 1;
 		p = (lru_entry_t *)hashnode->value;
 	}
 	void * new_value = value_clone(lru->alloc, value);
 	if(!(new_value)){
 		/* fails to clone value to p */
 		printf("%s: fail to clone value\n", __FUNCTION__);
-		zfree(lru->alloc,p);
+		if (!existed) zfree(lru->alloc,p, sizeof(lru_entry_t));
 		return 0;
 	}
 	printf("%s: value cloned\n", __FUNCTION__);
@@ -233,16 +236,15 @@ int lru_cache_insert(lru_cache_t * lru,
 	return 1;
 }
 
-int lru_cache_get(alloc_t * alloc,
+void * lru_cache_get(alloc_t * alloc,//could be NULL
 				  lru_cache_t * lru,
-				  const void * key,
-				  void ** res){
-	if(!lru || !key ||  !res || !alloc) {
+				  const void * key){
+	if(!lru || !key) {
 		return 0;
 	}
 	void * v = 0;
 	lru_entry_t * p = 0;
-	v=hash_map_lookup_value(lru->hashmap, key);
+	v=hash_map_lookup_value(lru->hashmap, NULL, key);
 	if(!v){
 		printf("%s: key doesn't exist\n", __FUNCTION__);
 		return 0;
@@ -255,11 +257,12 @@ int lru_cache_get(alloc_t * alloc,
 	lru->head->next->prev = p;
 	lru->head->next = p;
 	p->prev = lru->head;
+	if (!alloc) return p->value;
 	/* copy value then exit */
-	*res = p->value_clone(alloc, p->value);
-	if(!*res){
-		printf("%s: cannot clone value\n", __FUNCTION__);
-		return 0;
+	void * res = p->value_clone(alloc, p->value);
+	if(!res){
+		printf("%s: cannot clone value\n", __func__);
+		return NULL;
 	}
-	return 1;
+	return res;
 }

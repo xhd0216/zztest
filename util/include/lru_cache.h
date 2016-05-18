@@ -25,7 +25,7 @@ lru_cache_constuct(alloc_t *,
 				data_free_cb_f,
 				data_clone_cb_f);
 /* TODO: will destruct lru only, lru->alloc will need to destruct seperately */
-void
+alloc_t *
 lru_cache_destruct(lru_cache_t *);
 /*
 int lru_cache_init(lru_cache_t **, 
@@ -34,14 +34,14 @@ int lru_cache_init(lru_cache_t **,
 				data_free_cb_f keyf,
 				data_clone_cb_fk eyc);
 */
-int lru_cache_get(allot_t *,
+void * lru_cache_get(allot_t *,//if alloc==NULL, just return the pointer of value;
 					lru_cache_t *,
-				    const void * key,
-					void ** res);
+				    const void * key);
 int lru_cache_insert(lru_cache_t *,
 					 const void * key,
 					 const void * value,
 					 data_clone_cb_f valuec,
 					 data_free_cb_f valuef);
-int lru_delete_auto(lru_cache_t *);
+int lru_remove_least_used(lru_cache_t *);
+
 void lru_dump(lru_cache_t *, value_to_string_cb_f, key_to_string_cb_f);

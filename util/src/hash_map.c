@@ -40,37 +40,6 @@ hash_map_free_entry(hash_map_t * hm, hash_map_entry_t * p) {
 	zfree(hm->alloc, p, sizeof(hash_map_entry_t));
 }
 
-#if 0
-void hash_map_free_entry(hash_map_entry_t * p, data_free_cb_f  key_f){
-	if(p){
-		if(p->key){
-			(key_f)(p->key);
-		}
-		if(p->value && p->value_free){
-			p->value_free(p->value);
-		}
-		free(p);
-	}
-}
-
-void hash_map_fini(hash_map_t * hm){
-	if(!hm) return;
-	int i = 0;
-	hash_map_entry_t * p;
-	hash_map_entry_t * next;
-	while(i < HASH_MAP_MAX_BUCKETS){
-		p = hm->table[i];
-		while(p){
-			next = p->next;
-			hash_map_free_entry(p, hm->key_free);
-			p = next;
-		}
-		i++;
-	}
-	free(hm);
-
-}
-#endif
 
 void hash_map_destruct(hash_map_t * hm)
 {
@@ -245,6 +214,7 @@ hash_map_insert(hash_map_t * hashmap,
 	new_node->value = (*clone)(hashmap->alloc, value);
 	if(!(new_node->value)){
 		printf("%s: error cloning memory for value\n", __FUNCTION__);
+		hash_map_free_entry(hashmap, new_node);
 		return 0;
 	}
 	new_node->value_clone = clone;

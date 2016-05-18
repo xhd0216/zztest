@@ -43,7 +43,7 @@ typedef struct hash_map_s{
 	int                 entries; /* number of entries in hash map */
 }hash_map_t;
 
-int hash_map_delete_entry(hash_map_t *,
+int hash_map_remove_key(hash_map_t *,
 					      const void * key);
 /* XXX:be careful of the call back function:
  * could cbf read memory to get other entries?
@@ -52,7 +52,7 @@ int hash_map_delete_entry(hash_map_t *,
  */
 
 /* clone value using call back function */
-/* note: this function will NOT allocate memory for the return value */
+/* note: if alloc is NULL, return the value pointer; otherwise, clone value and return */
 void * hash_map_lookup_value(hash_map_t *,
 					alloc_t *, /* allocator to the returned value */
 					const void * key);

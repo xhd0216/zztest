@@ -28,7 +28,7 @@ void hash_map_dump(hash_map_t * hm,
 
 void
 hash_map_free_entry(hash_map_t * hm, hash_map_entry_t * p) {
-	if (!hm || !p){
+	if (!hm || !p || !hm->alloc){
 		return;
 	}
 	if (p->key && hm->key_free) {
@@ -74,12 +74,16 @@ void hash_map_fini(hash_map_t * hm){
 
 void hash_map_destruct(hash_map_t * hm)
 {
+	if (!hm || !hm->alloc) {
+		return;
+	}
 	if (hm->table){
 		int i = 0;
 		hash_map_entry_t * p;
 		hash_map_entry_t * tmp;
 		while (i < hm->size){
 			p = hm->table[i];
+			if (!p) break;
 			if (p && p->next){
 				p = p->next;
 				while(p){
@@ -90,11 +94,10 @@ void hash_map_destruct(hash_map_t * hm)
 			}
 			i++;
 		}
+		zfree(hm->alloc, hm->table, sizeof(hash_map_entry_t *) * hm->size);
 	}
-	/* hm is allocated by malloc */
-	zfree(hm->alloc, hm->table, sizeof(hash_map_entry_t *) * hm->size);
-	//zalloc_destruct(NULL, hm->alloc); //alloc is allocated by malloc, so first arg is NULL
-	zfree(hm->alloc, hm); //hm is allocated by zalloc, so use zfree, not free
+	if (hm) 
+		zfree(hm->alloc, hm, sizeof(hash_map_t)); 
 	//XXX: because hm->alloc == lru->alloc, hm->alloc will be destructed in lru_destruct
 }
 
@@ -119,11 +122,10 @@ hash_map_t * hash_map_construct(alloc_t * alloc,
 	hm->table = (hash_map_entry_t **)zalloc(hm->alloc,
 											sizeof(hash_map_entry_t *) * sz);
 	if (!hm->table) {
-		free(hm);
+		hash_map_destruct(hm);
 		return NULL;
 	}
 	while(i < sz){
-		//hm->table[i] = (hash_map_entry_t *)malloc(sizeof(hash_map_entry_t));
 		hm->table[i] = (hash_map_entry_t *)zalloc(hm->alloc, 
 												  sizeof(hash_map_entry_t));
 		if(hm->table[i] == 0){
@@ -180,13 +182,14 @@ void * hash_map_lookup_value(hash_map_t * hm,
 		printf("%s: cannot find entry\n", __func__);
 		return NULL;
 	}
+	if (!alloc) return p->value;
 	void * res = (*(p->value_clone))(alloc, p->value);
 	if(!res){
 		printf("%s: fail to clone value\n", __func__);
 	}
 	return res;
 }
-int hash_map_delete_entry(hash_map_t * hm,
+int hash_map_remove_key(hash_map_t * hm,
 						const void * key){
 	hash_map_entry_t * p = hash_map_lookup_entry(hm, key);
 	if(!p){
@@ -196,9 +199,7 @@ int hash_map_delete_entry(hash_map_t * hm,
 	p->prev->next = p->next;
 	if(p->next) p->next->prev = p->prev;
 	/* free hash_map_entry_t*/
-	//hash_map_free_entry(p, hm->key_free);
-	if(hm->key_free) hm->key_free(hm->alloc, p->key);
-	if(p && p->value_free) p->value_free(hm->alloc, p->value);
+	hash_map_free_entry(hm, p);
 	return 1;
 }
 

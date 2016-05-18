@@ -21,7 +21,7 @@ typedef struct lru_cache_s{
 lru_cache_t *
 lru_cache_constuct(alloc_t *,
 				hash_map_function,
-				key_cmp_fb_f,
+				key_cmp_cb_f,
 				data_free_cb_f,
 				data_clone_cb_f);
 /* TODO: will destruct lru only, lru->alloc will need to destruct seperately */
@@ -34,7 +34,7 @@ int lru_cache_init(lru_cache_t **,
 				data_free_cb_f keyf,
 				data_clone_cb_fk eyc);
 */
-void * lru_cache_get(allot_t *,//if alloc==NULL, just return the pointer of value;
+void * lru_cache_get(alloc_t *,//if alloc==NULL, just return the pointer of value;
 					lru_cache_t *,
 				    const void * key);
 int lru_cache_insert(lru_cache_t *,

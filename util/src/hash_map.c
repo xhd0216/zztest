@@ -143,7 +143,7 @@ void * hash_map_lookup_value(hash_map_t * hm,
 					alloc_t * alloc,
 					const void * key)
 {
-	if(!hm || !key || !value){
+	if(!hm || !key){
 		return 0;
 	}
 	hash_map_entry_t * p = hash_map_lookup_entry(hm, key);

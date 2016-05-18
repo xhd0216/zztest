@@ -17,8 +17,8 @@ alloc_t * lru_cache_destruct(lru_cache_t *lru){
 		p = next;
 	}
 	hash_map_destruct(lru->hashmap);
-	allot_t * res = lru->alloc;
-	zfree(lru->alloc, lru);
+	alloc_t * res = lru->alloc;
+	zfree(lru->alloc, lru, sizeof(lru_cache_t));
 	return res;
 }
 void lru_dump(lru_cache_t * lru, value_to_string_cb_f vts, key_to_string_cb_f kts){
@@ -78,7 +78,7 @@ int lru_remove_least_used(lru_cache_t * lru){
 	return 1;
 }
 
-void lru_free_nothing(void * foo){
+void lru_free_nothing(alloc_t * a, void * foo){
 	/* this function should do nothing! */
 	printf("%s: we do nothing here -- we don't free the lru entry\n", __FUNCTION__);
 }
@@ -136,8 +136,8 @@ lru_cache_t * lru_cache_construct(alloc_t * alloc,
 				int sz,
 				hash_map_function hashfunction,
 				key_cmp_cb_f key_cmp,
-				key_free_cb_f key_free,
-				key_clone_cb_f key_clone){
+				data_free_cb_f key_free,
+				data_clone_cb_f key_clone){
 	if (!alloc || sz<1 || hashfunction || key_cmp || key_free || key_clone) {
 		printf("%s: invalid argument\n", __func__);
 		return NULL;
@@ -164,8 +164,8 @@ lru_cache_t * lru_cache_construct(alloc_t * alloc,
 		return NULL;
 	}
 	ret->head->prev = NULL;
-	ret->head->next = (*lru)->tail;
-	ret->tail->prev = (*lru)->head;
+	ret->head->next = ret->tail;
+	ret->tail->prev = ret->head;
 	ret->tail->next = NULL;
 	return ret;
 }
@@ -183,7 +183,6 @@ int lru_cache_insert(lru_cache_t * lru,
 	lru_entry_t * p;
 	int existed = 0;
 	hash_map_entry_t * hashnode = hash_map_lookup_entry(lru->hashmap, key);
-	printf("%s: debug: the returned address is %p\n", __FUNCTION__, v);
 	if(!hashnode){
 		printf("%s: key doesn't exist, create new one\n", __FUNCTION__);
 		p = (lru_entry_t *) zalloc(lru->alloc, sizeof(lru_entry_t));

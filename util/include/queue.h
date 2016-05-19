@@ -1,16 +1,20 @@
 #include <pthread.h>
+#include "zalloc.h"
+typedef void * (*queue_node_clone_cbf)(alloc_t *, const void *);
+typedef void (*queue_node_destroy_cbf)(alloc_t *, void *);
 
-/*thread safe queue should have mutex*/
 typedef struct queue_node_s{
 	struct queue_node_s * next;
 	struct queue_node_s * prev;
 	void * pVal;
+	queue_node_clone_cbf clone; // could be NULL
+	queue_node_destroy_cbf free; //could be NULL
 }queue_node_t;
 
-typedef int (*queue_node_clone_cbf)(void **, const void *);
-typedef int (*queue_node_destroy_cbf)(void *);
 
+/*thread safe queue should have mutex*/
 typedef struct queue_s{
+	alloc_t * alloc;
 	queue_node_t * head;
 	queue_node_t * end;
 	int count;
@@ -22,9 +26,13 @@ typedef struct queue_s{
 /*if pVal has same type, need to define callback to delete popped nodes*/
 /*if pVal does not have same type, how to delete them?*/
 //int queue_init(queue_t **, int max, queue_node_clone_cbf *, queue_node_destroy_cbf *);
-int queue_init(queue_t **, int max);
+//int queue_init(queue_t **, int max);
+queue_t * queue_construct(alloc_t *, int max_count);
+
 /* if cbf = NULL, put the src pointer in queue_node->pVal
  * otherwise, create new memory to clone src*/
 /* recommend to use clone = 0*/
 int queue_push(queue_t *, const void *, queue_node_clone_cbf *);
-void * queue_pop(queue_t *);
+void * queue_pop(queue_t *, alloc_t *);
+void * queue_peek(queue_t *, alloc_t *);
+alloc_t * queue_destruct(queue_t *);

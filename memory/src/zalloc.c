@@ -91,9 +91,16 @@ void * zalloc(alloc_t * za, int size){
 		i++;
 	}
 	/* XXX: currently we use malloc */
-	ret = (void *)malloc(size);
-	if (ret) {
-		za->mem_used += size;
+	if (!za->alloc || !za->eaf) {
+		ret = (void *)malloc(size);
+		if (ret) za->mem_used += size;
+	}
+	else{
+		int s = size;
+		ret = za->eaf(za->alloc, &s);
+		if (ret) {
+			za->memused += s;
+		} 
 	}
 	return ret;
 }

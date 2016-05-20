@@ -1,3 +1,4 @@
+#include "zalloc.h"
 #include "data.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +12,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include "queue.h"
+#include "srvr_memory.h"
 
 #define SERVER_PATH_NAME "./server_file/_server_file_"
 #define MSG_LENGTH 1024
@@ -20,15 +22,16 @@
 #define MAX_QUEUE 64
 
 
-
-
 /*shared memory*/
+alloc_t * alloc = NULL;
 lru_cache_t * lru = NULL;
 int b_end = 0;/*signal that ends the process*/
 queue_t * q = NULL;
 
 pthread_cond_t cond;
 pthread_mutex_t mutex;
+
+
 
 #define SIGNAL_T SIGINT
 void sig_handler(int sig){
@@ -153,19 +156,25 @@ int main(int argc, char * argv[]){
 		sigaction(SIGNAL_T, &act, 0);
 
 		/*initialize share memory*/
+		alloc = server_allocate_memory(NULL);
+		if (!alloc) {
+			printf("%s: failed to initialize memory allocator, quit program\n",
+					__func__);
+			goto done_main;
+		}
 		res = lru_cache_init_wrap(&lru);
 	
 		if (!lru || !res){
 			printf("%s: failed to initialize cache, quit program\n",
 					 __FUNCTION__);
-			return 0;
+			goto done_main;
 		}
 		
 		res = queue_init(&q, MAX_QUEUE);
 		if(!res || !q){
 			printf("%s: failed to initialize queue, quit program\n", 
 					__FUNCTION__);
-			return 0;
+			return done_main;
 		}
 		/*create socket*/
 		sock = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -245,6 +254,8 @@ int main(int argc, char * argv[]){
 		pthread_mutex_destroy(&mutex);
 		pthread_cond_destroy(&cond);
 	}
+done_main:
+	//destroy shared memories, alloc, lru, queue, etc.
 	return 0;
 
 }

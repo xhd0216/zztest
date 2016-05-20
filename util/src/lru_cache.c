@@ -6,7 +6,7 @@
 /* XXX: need to destruct lru->alloc outside this function */
 alloc_t * lru_cache_destruct(lru_cache_t *lru){
 	if(!lru){
-		return;
+		return NULL;
 	}
 	lru_entry_t * p = lru->head;
 	lru_entry_t * next;
@@ -65,13 +65,7 @@ int lru_remove_least_used(lru_cache_t * lru){
 		printf("%s: error: records in linkedlist and hashmap don't match\n", __func__);
 	}
 	if(pb){
-		if(pb->prev){
-			pb->prev->next = pb->next;
-			if(pb->next){
-				pb->next->prev = pb->prev;
-			}
-		}
-		hash_map_free_entry(lru->hashmap, pb);
+		hash_map_remove_key(lru->hashmap, pb->key);
 	}
 	(p->value_free)(lru->alloc, p->value);
 	zfree(lru->alloc, p, sizeof(lru_entry_t));

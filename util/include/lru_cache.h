@@ -1,3 +1,5 @@
+#ifndef _LRU_CACHE_H
+#define _LRU_CACHE_H
 #include "zalloc.h"
 #include "hash_map.h"
 
@@ -27,13 +29,6 @@ lru_cache_constuct(alloc_t *,
 /* TODO: will destruct lru only, lru->alloc will need to destruct seperately */
 alloc_t *
 lru_cache_destruct(lru_cache_t *);
-/*
-int lru_cache_init(lru_cache_t **, 
-				hash_map_function,
-				key_cmp_cb_f,
-				data_free_cb_f keyf,
-				data_clone_cb_fk eyc);
-*/
 void * lru_cache_get(alloc_t *,//if alloc==NULL, just return the pointer of value;
 					lru_cache_t *,
 				    const void * key);
@@ -45,3 +40,4 @@ int lru_cache_insert(lru_cache_t *,
 int lru_remove_least_used(lru_cache_t *);
 
 void lru_dump(lru_cache_t *, value_to_string_cb_f, key_to_string_cb_f);
+#endif /* _LRU_CACHE_H */

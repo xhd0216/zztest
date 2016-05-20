@@ -1,3 +1,4 @@
+#include "zalloc.h"
 typedef enum{
 	rp_zero = 0,
 	rp_open,
@@ -32,27 +33,23 @@ typedef enum{
 	rp_cci,
 	rp_MAX_PARAM
 }regular_parameter;
-//#define PARAMETER(name) rp_##name##
 
-//#define rp_MAX_PARAM 256
+#define PARAM_ARRAY_LENGTH 1+(rp_MAX_PARAM>>5)
+/*
 #define PARAMETER_NAME_MAX_LEN 15
 typedef struct kv_pair_s{
 	char k[PARAMETER_NAME_MAX_LEN];
 	double v;
 	struct kv_pair_s * next;
 	struct kv_pair_s * prev;
-}kv_pair_t;
+}kv_pair_t;*/
 
 typedef struct data_value_s{
 	double parameters[rp_MAX_PARAM];
-	int has_parameters[rp_MAX_PARAM];
-	kv_pair_t * head; 
-						/*head of non-regular parameters
-						*linked list 
-						*/
+	int has_parameters[PARAM_ARRAY_LENGTH];
 }data_value_t;
 
-int value_clone_cbf_for_data(void **, const void *);
-void value_free_cbf_for_data(void *);
+void * value_clone_cbf_for_data(alloc_t *, const void *);
+void value_free_cbf_for_data(alloc_t *, void *);
 char * value_to_string_for_data(const void *);
 

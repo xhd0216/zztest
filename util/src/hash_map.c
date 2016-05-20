@@ -120,7 +120,7 @@ hash_map_lookup_entry(hash_map_t * hm,
 	if(!hm || !key){
 		return 0;
 	}
-	int buc = hm->hash_f(key);
+	int buc = hm->hash_f(key) % hashmap->size;
 	if(buc < 0 || buc >= hm->size){
 		printf("%s: invalid bucket number %d\n", __func__, buc);
 		return 0;
@@ -159,7 +159,8 @@ void * hash_map_lookup_value(hash_map_t * hm,
 	return res;
 }
 int hash_map_remove_key(hash_map_t * hm,
-						const void * key){
+						const void * key)
+{
 	hash_map_entry_t * p = hash_map_lookup_entry(hm, key);
 	if(!p){
 		printf("%s: cannot find entry\n", __FUNCTION__);
@@ -182,7 +183,8 @@ hash_map_insert(hash_map_t * hashmap,
 				const void * key,
 				const void * value,
 				data_clone_cb_f clone,
-				data_free_cb_f value_f){
+				data_free_cb_f value_f)
+{
 	if(!hashmap || !key || !value || !clone || !(hashmap->key_cmp) || !value_f){
 		return 0;
 	}
@@ -220,7 +222,7 @@ hash_map_insert(hash_map_t * hashmap,
 	new_node->value_clone = clone;
 	new_node->value_free = value_f;
 	if(replace) return 1;
-	int buc = (*(hashmap->hash_f))(key);
+	int buc = (*(hashmap->hash_f))(key) % hashmap->size;
 	if (buc >= hashmap->size || buc < 0){
 		printf("%s: bucket number not valid: %d\n", __FUNCTION__, buc);
 		hash_map_free_entry(hashmap, new_node);

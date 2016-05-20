@@ -4,18 +4,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-char * key_to_string_for_data(const void * key){
+char * key_to_string_for_data(const void * key)
+{
 	data_key_t * k = (data_key_t *)key;
-	if(!k || !(k->key_name)){
-		return "no key";
-	}
-	if(k->key_name[0] == 0){
-		return "key is null";
+	if(!k || !(k->key_name) || !k->key_name[0]){
+		printf("%s: no key\n", __func__);
+		return NULL;
 	}
 	return k->key_name;
 }
 
-int hash_function_for_data(const void * key){
+int hash_function_for_data(const void * key)
+{
 	const data_key_t * k = (const data_key_t *) key;
 	int res = 0;
 	const char * c = k->key_name;
@@ -31,75 +31,52 @@ int hash_function_for_data(const void * key){
 		c++;
 	}
 	res -= k->update_period;
-	return res % HASH_MAP_MAX_BUCKETS;
+	return res;
 }
 int key_cmp_cbf_for_data(const void * key1,
-							  const void * key2){
+						 const void * key2)
+{
 	const data_key_t * k1 = (const data_key_t *) key1;
 	const data_key_t * k2 = (const data_key_t *) key2;
-	const char * c1 = k1->key_name;
-	const char * c2 = k2->key_name;
+	if (!k1->key_name || !k1->key_time || !k2->key_name || !k2->key_time)
+	{
+		return 0;
+	}
 	if(k1->update_period != k2->update_period){
 		return 0;
 	}
-	int count = 0;
-	while(count < DATA_KEY_NAME_MAX_SIZE && c1 && c2 && *c1 && *c2){
-		if(*c1 != *c2) return 0;
-		c1++;
-		c2++;
-		count++;
-	}
-	if(count <= DATA_KEY_NAME_MAX_SIZE && *c1 != *c2){
-		return 0;
-	}
-	c1 = k1->key_time;
-	c2 = k2->key_time;
-	count = 0;
-	while(count < DATA_KEY_TIME_SIZE && c1 && c2 && *c1 && *c2){
-		if(*c1 != *c2) return 0;
-		c1++;
-		c2++;
-		count++;
-	}
-	if(count <= DATA_KEY_TIME_SIZE && *c1 != *c2){
+	if (strcmp(k1->key_name, k2->key_name) != 0 ||
+		strcmp(k1->key_time, k2->key_time) != 0)
+	{
 		return 0;
 	}
 	return 1;
 }
-int key_clone_cbf_for_data(void ** target, const void * source){
-	if(!target || !source){
-		printf("%s: input error\n", __FUNCTION__);
+void * key_clone_cbf_for_data(alloc_t * alloc, const void * source)
+{
+	if(!alloc || !source){
+		printf("%s: input error\n", __func__);
 		return 0;
 	}
-	data_key_t * p = (data_key_t *)malloc(sizeof(data_key_t));
+	data_key_t * p = (data_key_t *)zalloc(alloc, sizeof(data_key_t));
 	if(!p){
 		printf("%s: no memory space for new key\n", __FUNCTION__);
-		return 0;
+		return NULL;
 	}	
 	const data_key_t * s = (const data_key_t *) source;
-	if(!strncpy(p->key_name, s->key_name, DATA_KEY_NAME_MAX_SIZE)){
-		printf("%s: string copy failed\n", __FUNCTION__);
-		free(p);
-		return 0;
+	if (!strncpy(p->key_name, s->key_name, DATA_KEY_NAME_MAX_SIZE) ||
+		!strncpy(p->key_time, s->key_time, DATA_KEY_TIME_MAX_SIZE))
+	{
+		printf("%s: string copy failed\n", __func__);
+		key_free_cbf_for_data(alloc, p);
+		return NULL;
 	} 
-	if(!strncpy(p->key_time, s->key_time, DATA_KEY_TIME_SIZE)){
-		printf("%s: string copy failed\n", __FUNCTION__);
-		free(p);
-		return 0;
-	}
 	p->update_period = s->update_period;
-	*target = (void *)p;
-	return 1;
+	return p;
 }
-void key_free_cbf_for_data(void * key){
-	free((data_key_t *)key);
+void key_free_cbf_for_data(alloc_t * alloc, void * key)
+{
+	zfree(alloc, key, sizeof(data_key_t));
 }
-/*int hash_map_init_wrap(hash_map_t ** hm){
-	return hash_map_init(hm, 
-						 &hash_function_for_data, 
-						 &key_cmp_function_for_data,
-						 &key_free_function_for_data,
-						 &key_clone_function_for_data);
-}*/
 
 

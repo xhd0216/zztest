@@ -1,26 +1,28 @@
 SHELL=/bin/sh
 .SUFFIXES:
 .SUFFIXES: .c .o
-lib_util = ../util/
-libraries = ../Library/libutil.so
-sources = $(lib_util)
-SRC = src/data_key.c src/data_value.c
+
+
+mm = memory
+ut = util
+everything = $(mm) $(ut)
+SRC = src/data_value.c src/data_key.c
 OBJ = $(SRC:.c=.o)
-mypath = ../Library
 
-all: $(OBJ) $(libraries)
-	gcc -shared -I$(sources)/include -Iinclude/ -o $(mypath)/libdata.so $(OBJ) $(libraries)
-$(libraries) : $(sources)
-	$(MAKE) --directory=$<
+sources_path = $(foreach p, $(everything), ../$p/)
+libraries = $(foreach l, $(everything), ../Library/lib$l.so)
+
+include_path = $(foreach d, $(sources_path), -I$dinclude/)
+
+
+all: $(OBJ)
+	gcc -shared $(OBJ) -o ../Library/libdata.so
 %.o : %.c
-	gcc -c -Wall -g -fPIC -Iinclude/ -I$(lib_util)/include $< -o $@
+	gcc -c -Wall -g -fPIC -Iinclude/ $(include_path) $< -o $@
 
-clean: clean_subs clean_so clean_local
+clean: clean_so clean_local
 
-clean_subs : $(sources)
-	$(MAKE) --directory=$< clean
 clean_local:
 	-rm src/*.o
-
 clean_so:
 	-rm ../Library/libdata.so

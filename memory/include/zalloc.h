@@ -31,7 +31,7 @@ void zalloc_destruct(void * allocator, alloc_t *);
 /* now, we only support allocating one memory */
 void * zalloc(alloc_t *, int size);
 void zfree(alloc_t *, void *, int);
-#endif
+#endif /* FIXED_LIST_ALLOCATOR_H */
 
 
 

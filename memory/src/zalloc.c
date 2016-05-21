@@ -62,7 +62,7 @@ alloc_t * zalloc_construct(
 	return ret;
 }
 
-void zalloc_destruct(void * allocator, alloc_t * za){
+void * zalloc_destruct(void * allocator, alloc_t * za){
 	if (!allocator) {
 		/* allocator is malloc */	
 		int j =0;
@@ -76,6 +76,7 @@ void zalloc_destruct(void * allocator, alloc_t * za){
 	} else {
 		/* if allocator is not NULL */
 	}
+	return allocator;
 }
 
 void * zalloc(alloc_t * za, int size){

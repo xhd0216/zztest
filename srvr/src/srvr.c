@@ -162,41 +162,20 @@ int main(int argc, char * argv[]){
 					__func__);
 			goto done_main;
 		}
-		res = lru_cache_init_wrap(&lru);
+		lru = data_leu_cache_construct_wrap(NULL);
 	
-		if (!lru || !res){
+		if (!lru) { 
 			printf("%s: failed to initialize cache, quit program\n",
 					 __FUNCTION__);
 			goto done_main;
 		}
 		
-		res = queue_init(&q, MAX_QUEUE);
-		if(!res || !q){
+		q = queue_construct(NULL, MAX_QUEUE);
+		if (!q) {
 			printf("%s: failed to initialize queue, quit program\n", 
 					__FUNCTION__);
-			return done_main;
+			goto done_main;
 		}
-		/*create socket*/
-		sock = socket(AF_UNIX, SOCK_STREAM, 0);
-		if(sock < 0){
-			printf("%s: opening stream socket error: %d\n", 
-					__FUNCTION__, sock);
-			return 0;
-		}
-		printf("the connected socket is %d\n", sock);
-		server.sun_family = AF_UNIX;
-		strcpy(server.sun_path, SERVER_PATH_NAME);
-		if(bind(sock, (struct sockaddr *)&server, sizeof(struct sockaddr_un))){
-			printf("%s: error in binding stream socket\n", __FUNCTION__);
-			return 0;
-		}
-		chmod(SERVER_PATH_NAME, S_IRWXU|S_IRWXG|S_IROTH|S_IWOTH);
-		
-		printf("program is running, socket name: %s\n", server.sun_path);
-		/* listen, max 10 connections waiting*/
-		listen(sock, MX_LISTEN);
-
-
 		/*initialize mutex and cond*/
 		pthread_mutex_init(&mutex, NULL);
 		pthread_cond_init(&cond, NULL);
@@ -210,6 +189,28 @@ int main(int argc, char * argv[]){
 			pthread_create(&threads[i], &attr, worker, (void *)j);
 			i++;
 		}
+		/*create socket*/
+		sock = socket(AF_UNIX, SOCK_STREAM, 0);
+		if(sock < 0){
+			printf("%s: opening stream socket error: %d\n", 
+					__FUNCTION__, sock);
+			goto done_main;
+		}
+		printf("the connected socket is %d\n", sock);
+		server.sun_family = AF_UNIX;
+		strcpy(server.sun_path, SERVER_PATH_NAME);
+		if(bind(sock, (struct sockaddr *)&server, sizeof(struct sockaddr_un))){
+			printf("%s: error in binding stream socket\n", __FUNCTION__);
+			goto done_main;
+		}
+		chmod(SERVER_PATH_NAME, S_IRWXU|S_IRWXG|S_IROTH|S_IWOTH);
+		
+		printf("program is running, socket name: %s\n", server.sun_path);
+		/* listen, max 10 connections waiting*/
+		listen(sock, MX_LISTEN);
+
+
+		
 
 		while(!b_end){
 			struct sockaddr sad;
@@ -256,6 +257,9 @@ int main(int argc, char * argv[]){
 	}
 done_main:
 	//destroy shared memories, alloc, lru, queue, etc.
+	queue_destruct(q);
+	lru_cache_destruct(lru);
+	zalloc_destruct(NULL, alloc);	
 	return 0;
 
 }

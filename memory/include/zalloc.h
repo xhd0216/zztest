@@ -18,7 +18,7 @@ alloc_t * zalloc_construct(
 				void * allocator,// allocator for memory, if NULL, use malloc
 				fl_allocator_init_param_t **, 
 				int num);
-void zalloc_destruct(void * allocator, alloc_t *);
+void * zalloc_destruct(void * allocator, alloc_t *);
 
 
 /* XXX: we do not support allocating array like:

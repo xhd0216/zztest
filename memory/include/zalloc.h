@@ -8,6 +8,7 @@ typedef struct zalloc_s{
 	int flag; /* out of memory, etc */
 	int mem_used; /* total memory used by malloc */
 				  /* fixed list memory usage tracked by each list */
+	void * allocator; //external allocator, used when no fl mem to use
 }alloc_t;
 
 /* zalloc_s should contain a list of fl_allocator_t

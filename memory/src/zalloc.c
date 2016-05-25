@@ -41,6 +41,7 @@ alloc_t * zalloc_construct(
 		ret->n_lists = num;
 		ret->flag = 0;
 		ret->mem_used = 0;
+		ret->allocator = NULL;
 		int i = 0;
 		while (i < num){
 			/* make sure that fl_allocator uses NO extra memory allocator */
@@ -92,16 +93,16 @@ void * zalloc(alloc_t * za, int size){
 		i++;
 	}
 	/* XXX: currently we use malloc */
-	if (!za->alloc || !za->eaf) {
+	if (!za->allocator) {
 		ret = (void *)malloc(size);
 		if (ret) za->mem_used += size;
 	}
 	else{
-		int s = size;
-		ret = za->eaf(za->alloc, &s);
-		if (ret) {
-			za->memused += s;
-		} 
+	//	int s = size;
+	//	ret = za->eaf(za->alloc, &s);
+	//	if (ret) {
+	//		za->memused += s;
+	//	} 
 	}
 	return ret;
 }

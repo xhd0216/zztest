@@ -120,7 +120,7 @@ hash_map_lookup_entry(hash_map_t * hm,
 	if(!hm || !key){
 		return 0;
 	}
-	int buc = hm->hash_f(key) % hashmap->size;
+	int buc = hm->hash_f(key) % hm->size;
 	if(buc < 0 || buc >= hm->size){
 		printf("%s: invalid bucket number %d\n", __func__, buc);
 		return 0;

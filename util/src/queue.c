@@ -15,12 +15,12 @@ queue_t * queue_construct(alloc_t * alloc,
 	tmp->end = NULL;
 	tmp->max_count = max_count;	
 	tmp->alloc = alloc;
-	if (pthread_mutex_init(&(tmp->q_lock), NULL) != 0)
+	/*if (pthread_attr_init(&(tmp->q_lock), NULL) != 0)
     {
         printf("%s: mutex init failed\n", __FUNCTION__);
 		queue_destruct(tmp);
         return NULL;
-    }
+    }*/
 	tmp->head = (queue_node_t *)zalloc(tmp->alloc, sizeof(queue_node_t));
 	tmp->end = (queue_node_t *)zalloc(tmp->alloc, sizeof(queue_node_t));
 	if(!(tmp->head) || !(tmp->end)){
@@ -37,11 +37,33 @@ queue_t * queue_construct(alloc_t * alloc,
 	tmp->count = 0;
 	return tmp;
 }
-
+alloc_t * queue_destruct(queue_t * q)
+{
+	if (!q) return NULL;
+	if (q->head && q->end) {
+		queue_node_t * n = q->head;
+		queue_node_t * tmp;
+		while (n) {
+			tmp = n->next;
+			zfree(q->alloc, n, sizeof(queue_node_t));
+			n = tmp;
+		}
+		/* head and end should be deleted now */
+	}
+	if (q->head) {
+		zfree(q->alloc, q->head, sizeof(queue_node_t));
+	}
+	if (q->end) {
+		zfree(q->alloc, q->end, sizeof(queue_node_t));
+	}
+	alloc_t * ret = q->alloc;
+	zfree(ret, q, sizeof(queue_t));
+	return ret;
+}
 /* if clone is NULL: use p as val of queue node*/
 int queue_push(queue_t * q,
 			   const void * p,
-			   queue_node_clone_cbf * clone){
+			   queue_node_clone_cbf clone){
 	queue_node_t * tmp = 0;
 	if(!q){
 		printf("%s: null queue pointer\n", __FUNCTION__);
@@ -74,7 +96,7 @@ int queue_push(queue_t * q,
 	if (!clone){
 		tmp->pVal = (void *)p;
 	} else {
-		tmp->pVal = (*clone)(q->alloc, p);
+		tmp->pVal = (clone)(q->alloc, p);
 		if (!tmp->pVal){
 			printf("%s: failed to clone\n", __FUNCTION__);
 			zfree(q->alloc, tmp, sizeof(queue_node_t));

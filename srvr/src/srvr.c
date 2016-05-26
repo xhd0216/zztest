@@ -20,7 +20,7 @@
 #define NUM_OF_WORKING_THREADS 4
 
 #define MAX_QUEUE 64
-
+#define MAX_LRU_ENTRY 1024
 
 /*shared memory*/
 alloc_t * alloc = NULL;
@@ -93,7 +93,7 @@ void * worker(void * arg){
 			pthread_mutex_unlock(&mutex);
 			goto thread_exit;
 		}
-		msgsock = (int *)queue_pop(q); 
+		msgsock = (int *)queue_pop(q, NULL); 
 		pthread_mutex_unlock(&mutex);
 		rval = 1;
 		
@@ -102,18 +102,18 @@ void * worker(void * arg){
 		rval = read(*msgsock, buf, MSG_LENGTH);
 		//pthread_mutex_unlock(&mutex);
 		if (rval < 0) {
-			printf("thread %d: msg read error, errno=%d, s=%p\n", index, errno, s);
+			printf("thread %d: msg read error, errno=%d, msgsock=%d\n", index, errno, *msgsock);
 		} else if(rval == 0) {
-			printf("thread %d: read the end of file, s=%p\n", index, s);
+			printf("thread %d: read the end of file, msgsock=%d\n", index, *msgsock);
 		} else {
 			printf("thread %d: msg read --->  %s\n", index, buf);
 			if (strcmp(buf, "END") == 0){
-				printf("thread %d got end signal, s=%p\n", index, s);
+				printf("thread %d got end signal, msgsock=%d\n", index, *msgsock);
 				b_end = 1;
 				break;
 			}
 			//	pthread_mutex_lock(&mutex);
-			int ret = send(msgsock, (const void *) resp_buf, 
+			int ret = send(*msgsock, (const void *) resp_buf, 
 								strlen(resp_buf), 0);
 			//	pthread_mutex_unlock(&mutex);
 			if(ret){
@@ -122,9 +122,9 @@ void * worker(void * arg){
 				printf("thread %d: failed to send msg\n", index);
 			}
 		}
-		close(msgsock);
-		zfree(alloc, m, sizeof(int));
-		m = NULL;
+		close(*msgsock);
+		zfree(alloc, msgsock, sizeof(int));
+		msgsock = NULL;
 	}
 thread_exit:
 	printf("thread %d exits\n", index);
@@ -143,7 +143,6 @@ void * queue_node_clone_int(alloc_t * alloc, const void * k)
 }
 
 int main(int argc, char * argv[]){
-	int res = 0;
 	struct sigaction act;
 	int b_end = 0;
 	int sock;
@@ -172,7 +171,7 @@ int main(int argc, char * argv[]){
 					__func__);
 			goto done_main;
 		}
-		lru = data_lru_cache_construct_wrap(alloc);
+		lru = data_lru_cache_construct_wrap(alloc, MAX_LRU_ENTRY);
 	
 		if (!lru) { 
 			printf("%s: failed to initialize cache, quit program\n",
@@ -238,7 +237,7 @@ int main(int argc, char * argv[]){
 				//}
 				//s->sock = msgsock;
 				pthread_mutex_lock(&mutex);
-				int rr = queue_push(q, &msgsock, &queue_node_clone_int);
+				int rr = queue_push(q, &msgsock, queue_node_clone_int);
 				printf("pushing sock %d to queue\n", msgsock);
 				if (!rr){
 					printf("%s: queue is full", __FUNCTION__);

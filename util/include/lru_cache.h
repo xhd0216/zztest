@@ -21,7 +21,8 @@ typedef struct lru_cache_s{
 }lru_cache_t;
 
 lru_cache_t *
-lru_cache_constuct(alloc_t *,
+lru_cache_construct(alloc_t *,
+				int,
 				hash_map_function,
 				key_cmp_cb_f,
 				data_free_cb_f,

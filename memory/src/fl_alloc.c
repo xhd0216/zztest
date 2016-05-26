@@ -101,7 +101,7 @@ fl_allocator_construct(fl_allocator_init_param_t * param)
 	r->head.next = (free_list_t *) r->begin;
 	return r;
 }
-void fl_allocator_destrcut(fl_allocator_t * fl)
+void fl_allocator_destruct(fl_allocator_t * fl)
 {
 	if (!fl) return;
 	if (fl->begin) free(fl->begin); /* TODO: what if we did not use malloc to allocate fl->begin ? */
@@ -130,8 +130,8 @@ void * fl_alloc(fl_allocator_t * fl, int size){
 	}
 	void * tmp = fl->head.next;
 	fl->head.next = ((free_list_t *)tmp)->next;
-	//tmp->next = NULL;
-	memset(tmp, 0, fl->block_size);
+	/* don't memset */
+	//memset(tmp, 0, fl->block_size);
 	fl->num_avail -= 1;
 
 	return (void *) tmp;

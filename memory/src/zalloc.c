@@ -48,6 +48,7 @@ alloc_t * zalloc_construct(
 			params[i]->alloc = NULL;
 			params[i]->eaf = NULL;
 			params[i]->eff = NULL;
+			params[i]->extra_size_max = 0;
 			ret->mem_lists[i] = fl_allocator_construct(params[i]);
 			if (!ret->mem_lists[i]){
 				/* failed to construct fixed list, destruct the fl */
@@ -79,8 +80,19 @@ void * zalloc_destruct(void * allocator, alloc_t * za){
 	}
 	return allocator;
 }
-
-void * zalloc(alloc_t * za, int size){
+void * zcalloc(alloc_t * za, int size)
+{
+	void * ret = zalloc(za, size);
+	if (ret) {
+		memset(ret, 0, size);
+	}
+	return ret;
+}
+void * zalloc(alloc_t * za, int size)
+{
+	if (!za) {
+		return malloc(size);
+	}
 	int i = 0;
 	void * ret = NULL;
 	while ( i < za->n_lists){
@@ -108,6 +120,7 @@ void * zalloc(alloc_t * za, int size){
 }
 /* need to use size here */
 void zfree(alloc_t * za, void * p, int size){
+	if(!za) return; 
 	int i = 0;
 	while(i < za->n_lists){
 		/* need to check range, not only the size */

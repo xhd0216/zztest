@@ -4,8 +4,9 @@
 #include <stdio.h>
 
 lru_cache_t * 
-data_lru_cache_construct_wrap(alloc_t * alloc){
-	return lru_cache_init(alloc,
+data_lru_cache_construct_wrap(alloc_t * alloc, int size){
+	return lru_cache_construct(alloc,
+						   size,
 						   &hash_function_for_data,
 						   &key_cmp_cbf_for_data,
 						   &key_free_cbf_for_data,

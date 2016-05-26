@@ -32,7 +32,7 @@ queue_t * queue_construct(alloc_t *, int max_count);
 /* if cbf = NULL, put the src pointer in queue_node->pVal
  * otherwise, create new memory to clone src*/
 /* recommend to use clone = 0*/
-int queue_push(queue_t *, const void *, queue_node_clone_cbf *);
+int queue_push(queue_t *, const void *, queue_node_clone_cbf);
 void * queue_pop(queue_t *, alloc_t *);
 void * queue_peek(queue_t *, alloc_t *);
 alloc_t * queue_destruct(queue_t *);

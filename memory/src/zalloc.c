@@ -13,6 +13,7 @@ alloc_t * zalloc_construct(
 	/* validate the params */
 	int t = 1;
 	int last_size = params[0]->size;
+	printf("%s: allocator=%p, num of params=%d\n", __func__, allocator, num);
 	while(t < num){
 		if (params[t]->size < last_size) {
 			printf("%s: fixed list size should be in increasing order\n", __func__);
@@ -51,6 +52,7 @@ alloc_t * zalloc_construct(
 			params[i]->extra_size_max = 0;
 			ret->mem_lists[i] = fl_allocator_construct(params[i]);
 			if (!ret->mem_lists[i]){
+				printf("%s: failed to construct fixed list #%d\n", __func__, i);
 				/* failed to construct fixed list, destruct the fl */
 				zalloc_destruct(NULL, ret);
 				return NULL;

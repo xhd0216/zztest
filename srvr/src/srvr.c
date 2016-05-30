@@ -163,7 +163,7 @@ int main(int argc, char * argv[]){
 		sigaddset(&act.sa_mask, SIGNAL_T);
 		act.sa_handler = sig_handler;
 		sigaction(SIGNAL_T, &act, 0);
-
+		printf("initializing...\n");
 		/*initialize share memory*/
 		alloc = server_allocate_memory(NULL);
 		if (!alloc) {

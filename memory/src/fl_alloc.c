@@ -36,28 +36,38 @@ int chunk_is_in_range(fl_allocator_t * alloc, void * b){
 	}
 	return ALLOC_ERR_ADDR_OUT_OF_RANGE;
 }
+int is_power_of_two(int t)
+{
+	if (t & (t-1)) {
+		return 0;
+	} else {
+		return 1;
+	}
+}
 
 /* TODO: consider using user-defined allocator rather than malloc, need to indicate in param */
 fl_allocator_t * 
 fl_allocator_construct(fl_allocator_init_param_t * param)
 {
+	printf("%s: paramter: size=%d, num=%d\n", __func__, param->size, param->num);
 	if (param->size < (sizeof(free_list_t))) {
 		/* requested size is too small, not efficient */
 		printf("%s: block size too small\n", __func__);
 		return NULL;
 	}
 	/* validate the parameters */
-	if ((param->size ^ (param->size-1)) != 0){
+	if (0 == is_power_of_two(param->size)){
 		/* block size is NOT a power of 2 */
 		printf("%s: chunk size is not a power of 2\n", __func__);
 		return NULL;	
 	}
-	if ((param->num ^ (param->num-1)) != 0) {
+	if (0 == is_power_of_two(param->num)) {
 		/* block number is NOT a power of 2 */
 		printf("%s: chunk number is not a power of 2\n", __func__);
 		return NULL;
 	}
 	if (param->min_size >= param->size) {
+		printf("%s: min_size %d greater than size %d\n", __func__, param->min_size, param->size);
 		return NULL;
 	}
 	/* Note: r will use malloc; not necessarily a user defined one */

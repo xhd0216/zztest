@@ -185,6 +185,7 @@ int main(int argc, char * argv[]){
 					__FUNCTION__);
 			goto done_main;
 		}
+		printf("%s: shared memory initialized\n", __func__);
 		/*initialize mutex and cond*/
 		pthread_mutex_init(&mutex, NULL);
 		pthread_cond_init(&cond, NULL);

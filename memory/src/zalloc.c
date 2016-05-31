@@ -91,17 +91,19 @@ void * zcalloc(alloc_t * za, int size)
 	return ret;
 }
 void * zalloc(alloc_t * za, int size)
-{
+{	
+	void * ret = NULL;
 	if (!za) {
-		return malloc(size);
+		ret = malloc(size);
+		goto zalloc_return;
 	}
 	int i = 0;
-	void * ret = NULL;
 	while ( i < za->n_lists){
 		if (size <= za->mem_lists[i]->block_size &&
 			size >= za->mem_lists[i]->min_size) {
 			ret = fl_alloc(za->mem_lists[i], size);
-			if (ret) return ret;
+			if (ret) 
+				goto zalloc_return;
 			else break;
 		}
 		i++;
@@ -118,6 +120,8 @@ void * zalloc(alloc_t * za, int size)
 	//		za->memused += s;
 	//	} 
 	}
+zalloc_return:
+	printf("%s: size=%d, return value: %p\n", __func__, size, ret);
 	return ret;
 }
 /* need to use size here */

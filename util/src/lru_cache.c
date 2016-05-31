@@ -132,7 +132,7 @@ lru_cache_t * lru_cache_construct(alloc_t * alloc,
 				key_cmp_cb_f key_cmp,
 				data_free_cb_f key_free,
 				data_clone_cb_f key_clone){
-	if (!alloc || sz<1 || hashfunction || key_cmp || key_free || key_clone) {
+	if (!alloc || sz<1 || !hashfunction || !key_cmp || !key_free || !key_clone) {
 		printf("%s: invalid argument\n", __func__);
 		return NULL;
 	}
@@ -142,14 +142,16 @@ lru_cache_t * lru_cache_construct(alloc_t * alloc,
 		printf("init: fail to allocate memory for lru\n");
 		return ret;
 	}
+	printf("%s: zalloc'ed for lru_cache_t\n", __func__);
 	ret->alloc = alloc;
 	ret->head = (lru_entry_t*)zalloc(ret->alloc, sizeof(lru_entry_t));
 	ret->tail = (lru_entry_t*)zalloc(ret->alloc, sizeof(lru_entry_t));
 	if(!ret->head || !ret->tail){
-		printf("init: fail to allocate memory\n");
+		printf("error %s: fail to allocate memory\n", __func__);
 		lru_cache_destruct(ret);
 		return NULL;
 	}
+	printf("info: %s: before hash_map_construct\n", __func__);
 	//XXX: hashmap and lru will use the same alloc
 	ret->hashmap = hash_map_construct(ret->alloc, sz, hashfunction, key_cmp, key_free, key_clone);
 	if(!ret->hashmap){
@@ -161,6 +163,8 @@ lru_cache_t * lru_cache_construct(alloc_t * alloc,
 	ret->head->next = ret->tail;
 	ret->tail->prev = ret->head;
 	ret->tail->next = NULL;
+	printf("%s: lru constructed\n", __func__);
+	fflush(stdout);
 	return ret;
 }
 

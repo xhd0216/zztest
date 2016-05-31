@@ -84,33 +84,49 @@ hash_map_t * hash_map_construct(alloc_t * alloc,
 	/* XXX: hm is allocated by zalloc, so when destruct, destruct hm only, 
 	 * do NOT destruct hm->alloc */
 	hash_map_t * hm = (hash_map_t *)zalloc(alloc, sizeof(hash_map_t));
-	if(!hm) return 0;
+	if(!hm) {
+		printf("error %s: zalloc error\n", __func__);
+		return 0;
+	}
 	int i = 0;
 	hm->size = sz;
 	hm->alloc = alloc;
 	hm->table = (hash_map_entry_t **)zalloc(hm->alloc,
 											sizeof(hash_map_entry_t *) * sz);
 	if (!hm->table) {
+		printf("error %s: zalloc failed\n", __func__);
 		hash_map_destruct(hm);
 		return NULL;
+	} else {
+		printf("%s: hashmap table = %p\n", __func__, hm->table);
 	}
 	while(i < sz){
+		printf("loop #%d\n", i);
 		hm->table[i] = (hash_map_entry_t *)zalloc(hm->alloc, 
 												  sizeof(hash_map_entry_t));
-		if(hm->table[i] == 0){
+		if(0 == hm->table[i]){
 			printf("%s: cannot allocate memory for buckets\n", __func__);
 			hash_map_destruct(hm);
 			return NULL;
 		}
-		memset(hm->table[i], 0, sizeof(hash_map_entry_t));
-		hm->table[i]->prev = 0;
-		hm->table[i]->next = 0;
+		printf("%s: hm->table[%d]=%p\n", __func__, i, hm->table[i]);
+		//memset((void *)hm->table[i], 0, sizeof(hash_map_entry_t));
+		hm->table[i]->key = NULL;
+		hm->table[i]->value = NULL;
+		hm->table[i]->value_free = NULL;
+		hm->table[i]->value_clone = NULL;
+		hm->table[i]->prev = NULL;
+		hm->table[i]->next = NULL;
 		i++;
+		printf("%s: do you see this?\n", __func__);
+		fflush(stdout);
 	}
+	printf("%s: hashmap table initialized\n", __func__);
 	hm->hash_f = f;
 	hm->key_cmp = key_c;
 	hm->key_free = key_f;
 	hm->key_clone = key_cl;
+	printf("%s: hash_map_t constructed\n", __func__);
 	return hm;
 }
 

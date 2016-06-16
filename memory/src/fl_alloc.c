@@ -105,7 +105,8 @@ fl_allocator_construct(fl_allocator_init_param_t * param)
 	while(j < r->end){
 		((free_list_t *) i)->next = j;
 		i = j;
-		j = j + sizeof(free_list_t);
+		//j = j + sizeof(free_list_t);
+		j = j + r->block_size;
 	}
 	((free_list_t *)i)->next = NULL;
 	r->head.next = (free_list_t *) r->begin;

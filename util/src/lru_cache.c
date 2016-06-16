@@ -151,7 +151,7 @@ lru_cache_t * lru_cache_construct(alloc_t * alloc,
 		lru_cache_destruct(ret);
 		return NULL;
 	}
-	printf("info: %s: before hash_map_construct\n", __func__);
+	//printf("info: %s: before hash_map_construct\n", __func__);
 	//XXX: hashmap and lru will use the same alloc
 	ret->hashmap = hash_map_construct(ret->alloc, sz, hashfunction, key_cmp, key_free, key_clone);
 	if(!ret->hashmap){

@@ -13,7 +13,7 @@ alloc_t * zalloc_construct(
 	/* validate the params */
 	int t = 1;
 	int last_size = params[0]->size;
-	printf("%s: allocator=%p, num of params=%d\n", __func__, allocator, num);
+	//printf("%s: allocator=%p, num of params=%d\n", __func__, allocator, num);
 	while(t < num){
 		if (params[t]->size < last_size) {
 			printf("%s: fixed list size should be in increasing order\n", __func__);
@@ -92,6 +92,7 @@ void * zcalloc(alloc_t * za, int size)
 }
 void * zalloc(alloc_t * za, int size)
 {	
+	//printf("%s: before alloc: alloc_t=%p, size=%d\n", __func__, za, size);
 	void * ret = NULL;
 	if (!za) {
 		ret = malloc(size);
@@ -108,20 +109,24 @@ void * zalloc(alloc_t * za, int size)
 		}
 		i++;
 	}
+	//printf("%s: cannot allocate memory using alloc_t=%pi, extra_alloc=%p\n", __func__, za, za->allocator);
 	/* XXX: currently we use malloc */
 	if (!za->allocator) {
 		ret = (void *)malloc(size);
-		if (ret) za->mem_used += size;
-	}
-	else{
+		if (ret) {
+			//printf("%s: malloc result: %p, za->mem_used=%d\n", __func__, ret, za->mem_used);
+			za->mem_used += size;
+			//printf("%s: malloc result: %p, za->mem_used=%d\n", __func__, ret, za->mem_used);
+		}
+	} else {
 	//	int s = size;
 	//	ret = za->eaf(za->alloc, &s);
 	//	if (ret) {
 	//		za->memused += s;
 	//	} 
+		printf("%s: we don't support extra allocator yet\n", __func__);
 	}
 zalloc_return:
-	printf("%s: size=%d, return value: %p\n", __func__, size, ret);
 	return ret;
 }
 /* need to use size here */

@@ -27,10 +27,7 @@
 
 
 struct free_list_s{
-	//struct free_list_s * prev;
-	//struct free_list_s * next;
 	void * next;
-	//void * data;
 };
 typedef struct free_list_s free_list_t;
 

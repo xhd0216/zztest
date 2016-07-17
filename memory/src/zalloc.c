@@ -2,22 +2,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-alloc_t * zalloc_construct(
-			void * allocator,
-			fl_allocator_init_param_t ** params,
-			int num)
+
+static inline int 
+zalloc_validate_init_params(fl_allocator_init_param_t ** params,
+							int num)
 {
-	if (num < 1) {
-		return NULL;
-	}
-	/* validate the params */
 	int t = 1;
 	int last_size = params[0]->size;
-	//printf("%s: allocator=%p, num of params=%d\n", __func__, allocator, num);
 	while(t < num){
 		if (params[t]->size < last_size) {
 			printf("%s: fixed list size should be in increasing order\n", __func__);
-			return NULL;
+			return 0;
 		}
 		if (params[t]->min_size <= last_size) {
 			/* fixed list size ranges should not overlap */
@@ -26,7 +21,25 @@ alloc_t * zalloc_construct(
 		last_size = params[t]->size;
 		t++;
 	}
+	return 1;
+}
+
+alloc_t * zalloc_construct(
+			void * allocator,
+			fl_allocator_init_param_t ** params,
+			int num)
+{
 	alloc_t * ret = NULL;
+	
+	/* validate the params */
+	if (num < 1) {
+		return NULL;
+	}
+	int rvi = zalloc_validate_init_params(params, num);
+	if (!rvi) {
+		printf("%s: construction failed: invalid parameters\n", __func__);
+		return NULL;
+	}
 	if (!allocator){
 		/* use malloc */
 		ret = (alloc_t *)malloc(sizeof(alloc_t));
@@ -78,7 +91,7 @@ void * zalloc_destruct(void * allocator, alloc_t * za){
 		}
 		free(za);
 	} else {
-		/* if allocator is not NULL */
+		/* TODO:if we use extra allocator... */
 	}
 	return allocator;
 }
@@ -92,7 +105,6 @@ void * zcalloc(alloc_t * za, int size)
 }
 void * zalloc(alloc_t * za, int size)
 {	
-	//printf("%s: before alloc: alloc_t=%p, size=%d\n", __func__, za, size);
 	void * ret = NULL;
 	if (!za) {
 		ret = malloc(size);
@@ -109,28 +121,31 @@ void * zalloc(alloc_t * za, int size)
 		}
 		i++;
 	}
-	//printf("%s: cannot allocate memory using alloc_t=%pi, extra_alloc=%p\n", __func__, za, za->allocator);
-	/* XXX: currently we use malloc */
 	if (!za->allocator) {
 		ret = (void *)malloc(size);
 		if (ret) {
-			//printf("%s: malloc result: %p, za->mem_used=%d\n", __func__, ret, za->mem_used);
+			// record extra mem used.
 			za->mem_used += size;
-			//printf("%s: malloc result: %p, za->mem_used=%d\n", __func__, ret, za->mem_used);
 		}
 	} else {
-	//	int s = size;
-	//	ret = za->eaf(za->alloc, &s);
-	//	if (ret) {
-	//		za->memused += s;
-	//	} 
+		//TODO
 		printf("%s: we don't support extra allocator yet\n", __func__);
 	}
 zalloc_return:
 	return ret;
 }
+
+static inline int
+fl_alloc_size_match(fl_allocator_t * fl, int size)
+{
+	if (fl->block_size >= size && fl->min_size <= size) {
+		return 1;
+	}
+	return 0;
+}
 /* need to use size here */
-void zfree(alloc_t * za, void * p, int size){
+void zfree(alloc_t * za, void * p, int size)
+{
 	if(!za) return; 
 	int i = 0;
 	while(i < za->n_lists){
@@ -140,6 +155,9 @@ void zfree(alloc_t * za, void * p, int size){
 			fl_free(za->mem_lists[i], p);
 			return;
 		} else if (r == ALLOC_ERR_ADDR_ALIGN_ERR) {
+			return;
+		} else if (!fl_alloc_size_match(za->mem_lists[i], size)) {
+			/* size does not match */
 			return;
 		}
 		/* else, p in not in range */

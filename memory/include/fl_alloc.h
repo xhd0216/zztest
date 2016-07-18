@@ -61,6 +61,7 @@ typedef struct free_list_allocator_s{
 	/* extra allocator could be NULL -- in that case, when fl allocator is full,
 	   return NULL, then let the caller decide what to do. That is useful when an
 	   allocator which consists of multiple fl allocators and one extra allocator */
+	
 }fl_allocator_t;
 
 typedef struct fl_allocator_param_s{
@@ -80,3 +81,5 @@ fl_allocator_t * fl_allocator_construct(fl_allocator_init_param_t *);
 void fl_allocator_destruct(fl_allocator_t *);
 void * fl_alloc(fl_allocator_t *, int);
 void fl_free(fl_allocator_t *, void *);
+void fl_lock();
+void fl_unlock();
